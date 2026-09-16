@@ -1,4 +1,4 @@
-# tandem
+# tandem-skills
 
 **Claude designs and reviews. Grok builds.** Cross-model agent-team skills for Claude Code and Grok Build.
 
@@ -51,8 +51,8 @@ Tested with Claude Code 2.1.273 (Claude Opus 5) and Grok Build 1.0.30 (Grok 4.6)
 ## Install
 
 ```bash
-git clone https://github.com/sungminpark-biz/tandem.git
-cd tandem && ./install.sh          # copies skills/ into ~/.claude/skills/
+git clone https://github.com/sungminpark-biz/tandem-skills.git
+cd tandem-skills && ./install.sh          # copies skills/ into ~/.claude/skills/
 # or: ./install.sh --link          # symlink, so `git pull` updates in place
 ```
 

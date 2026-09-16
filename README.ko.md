@@ -1,4 +1,4 @@
-# tandem
+# tandem-skills
 
 **설계와 리뷰는 Claude, 코드는 Grok.** Claude Code와 Grok Build를 위한 교차 모델 에이전트 팀 스킬.
 
@@ -51,8 +51,8 @@ Claude Code 2.1.273 (Claude Opus 5), Grok Build 1.0.30 (Grok 4.6), macOS에서 �
 ## 설치
 
 ```bash
-git clone https://github.com/sungminpark-biz/tandem.git
-cd tandem && ./install.sh          # skills/ 를 ~/.claude/skills/ 로 복사
+git clone https://github.com/sungminpark-biz/tandem-skills.git
+cd tandem-skills && ./install.sh          # skills/ 를 ~/.claude/skills/ 로 복사
 # 또는: ./install.sh --link        # 심볼릭 링크 — git pull 하면 바로 반영
 ```
 
