@@ -29,6 +29,18 @@ involved at exactly two points: **the approval gate after the design is final (m
 when a business judgment (cost, customer impact, operating policy) is split. Otherwise don't
 interrupt them. Write all user-facing output in the user's language.
 
+Design quality bar (applies to the draft, the adversarial review and the approval summary):
+1. **Reuse before rewrite.** Inventory what already exists and works (apps, screens, libraries,
+   infra) before proposing anything new. A rewrite needs an explicit reason.
+2. **Current as of today's date.** For every framework/platform feature adopted, confirm the
+   currently recommended approach (load the platform's knowledge-update skill if one exists, check
+   docs via context7 / web search) and cite it. Prefer platform primitives (auth, queues, durable
+   workflows, cron, rate limiting, observability) over hand-rolled implementations.
+3. **Measured, not guessed.** Ground scale and scope in numbers from read-only sources (DB row
+   counts, traffic, infra inventory via cloud CLI describe/list). Never write to production.
+4. **No over-engineering.** Every component must justify itself against the measured scale. The
+   design lists what was deliberately *not* built.
+
 Overall flow:
 ```
 Claude design draft → Grok adversarial review → Claude rebut/accept + revise doc → (re-review ≤2)
@@ -81,6 +93,14 @@ The document must contain:
 - Step-by-step implementation order
 - Definition of done: test commands/conditions that must pass, manual checks
 - Do-not-touch: files that must not change, forbidden actions
+- Alternatives considered: for each major decision, the simpler option and why it was rejected.
+  Evaluate REUSING existing assets (existing apps, screen sets, libraries, infra) before any rewrite.
+- Currency check (as of today's date): for each adopted framework/platform feature, the currently
+  recommended approach with a citation (platform knowledge-update skill, context7, web). Prefer
+  platform primitives (auth, queues, durable workflows, cron, rate limiting) over hand-rolled code.
+- Scale evidence: measured numbers from read-only sources (DB counts, traffic, infra inventory).
+  Never write to production systems.
+- Deliberately not built: what was left out to avoid over-engineering, and why.
 Method: don't explore for long. **Within 10 minutes, Write the document skeleton first (the section
 headings above + what you already know), then fill it in with Edit as you investigate.** Do not exceed
 40 tool calls. If this round has a defined implementation slice, detail only that slice and list the
@@ -103,6 +123,13 @@ Read the design doc **in full** and verify it against the repository directly. T
 - Is the definition of done actually runnable? Any verification gaps?
 - For anything touching payments/DB/customers: double-processing, races, state on failure
 - Anything an implementer would have to guess ("I couldn't build this as written")
+- **Rewrite-vs-reuse**: does the design rebuild something that already exists and works (an app, a
+  screen set, a library, a pipeline)? Name the existing asset and what reusing it would save.
+- **Stale patterns**: hand-rolled auth / queues / cron / rate limiting / session handling where the
+  platform or a standard library provides it as of today; outdated runtime assumptions.
+- **Over-engineering**: components, layers or abstractions not justified by the measured scale
+  (cite the numbers); anything with exactly one caller.
+- **Unmeasured claims**: scope or sizing statements with no read-only measurement behind them.
 Write the result to `/tmp/team/<slug>/design-review-<N>.md`:
 ```
 ## Critical (implementing as written would be wrong or break things) — evidence required
@@ -141,6 +168,10 @@ Once the design is final, **do not start implementing**. Show the user the summa
 - Scope: N files (create …, modify …)
 - Key decisions (3–5): …
 - Adversarial review: Grok raised N items → Claude accepted N (what changed) / rebutted N (why)
+- Reuse vs rewrite: what existing assets are reused; what is rebuilt and why
+- Currency: key platform/framework choices and the date-stamped source confirming they are current
+- Scale evidence: the measured numbers the sizing rests on
+- Deliberately not built: …
 - Definition of done: <test commands>
 - Risks / things you should know: …
 Reply "approve" or "go" to proceed. Otherwise tell me what to change.
@@ -203,7 +234,9 @@ Verified 2026-09-16: `worker-start --agent grok` → Grok followed the injected 
 with `worker_done`.
 
 ### B-1. Design doc + Grok adversarial review (mandatory)
-Write `docs/design/<YYYYMMDD>-<slug>.md` with the same sections as A-1. Then call Grok headlessly
+Write `docs/design/<YYYYMMDD>-<slug>.md` with the same sections as A-1 — including the
+alternatives / currency / scale-evidence / deliberately-not-built sections and the quality bar above.
+Before drafting, inventory existing assets and measure scale from read-only sources. Then call Grok headlessly
 (read-only) for an adversarial review using the A-1b checklist and format:
 ```bash
 # The prompt file contains the A-1b checklist + output format + the design doc's absolute path

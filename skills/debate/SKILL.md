@@ -61,6 +61,8 @@ Requirements:
   ## Alternatives (concrete, and why better)
   ## Questions (information needed to judge)
   ## Verdict: agree | conditional agree (state conditions) | disagree
+- Also judge: is anything here a rewrite of an asset that already exists? a hand-rolled version of
+  something the platform provides as of today? over-engineered for the measured scale? unmeasured?
 - Don't be polite; if something is wrong, say so. Answer in the user's language.
 ```
 
