@@ -56,6 +56,11 @@ operating policy) is split. Otherwise don't interrupt them. Write all user-facin
 user's language. Scratch files (prompts, reviews) go to `/tmp/team/<slug>/` so git stays clean;
 `<slug>` is a short kebab-case name for the task, also used in the design doc filename.
 
+If the [ponytail](https://github.com/DietrichGebert/ponytail) plugin is installed, never invoke its
+main `ponytail` skill during a team run: its always-on rules ("no design notes", "shortest diff",
+"never stall on a default") fight T1, the approval gates and "follow the design's scope". Its
+`ponytail-review` skill is used in C-4 only.
+
 Design quality bar (applies to every design doc, decision record, adversarial review and approval
 summary):
 1. **Reuse before rewrite.** Inventory what already exists and works (apps, screens, libraries,
@@ -113,7 +118,8 @@ Method: don't explore for long. **Within 10 minutes, Write the document skeleton
 above + what you already know), then fill it in with Edit as you investigate.** Do not exceed 40 tool
 calls. If this round has a defined implementation slice, detail only that slice and list the rest as
 one-liners under a "Follow-ups" section. If the design stops fitting (section 0), stop and report that
-instead of writing a bigger doc. A source you can't reach → `not verified: <reason>`.
+instead of writing a bigger doc. A source you can't reach → `not verified: <reason>`. Don't invoke
+the `ponytail` skill while designing; every section above is requested.
 
 ### T2. Adversarial design review (checklist + output format)
 Read the design doc **in full** and verify it against the repository directly. The goal is to
@@ -187,6 +193,7 @@ Reply "approve" or "go" to proceed. Otherwise tell me what to change.
 - Slice: S<n> → done (slices.md updated); next: S<m> (todo, dependencies done) — say "go" to start it
 - Files changed: … (Grok)
 - Code review: N rounds — what the review fixed: …
+- Over-engineering pass (if ponytail): N suggested → N applied (net −N lines), N rejected (why)
 - Tests: <command> passed
 - Cost: Claude $X / Grok $Y (what is known)
 ## Open issues / decisions for the user
@@ -407,6 +414,17 @@ Claude does not edit source files.
 
 ### C-4. Review
 `git diff` + **re-run the definition-of-done tests yourself**, judged against the design doc (T4).
+
+**Over-engineering pass (only if the `ponytail:ponytail-review` skill is available).** After the
+correctness review, invoke it through the Skill tool on the same diff — never by typing
+`/ponytail-review` as a prompt, which flips ponytail's global mode flag for every session. It returns
+a delete-list only (`delete:` / `stdlib:` / `native:` / `yagni:` / `shrink:` per line). Judge each item
+like any finding: accept it only if it keeps the design's interfaces, the definition of done and the
+things ponytail itself never cuts (trust-boundary validation, data-loss handling, security,
+accessibility). An accepted item that changes an interface in the design doc → revise the doc first
+(show T3 again if it is substantial). Merge accepted items into the same "Apply review" spec; they
+count toward the same ≤3 rounds.
+
 Changes needed → reuse the same Grok:
 ```bash
 orca orchestration task-create --spec "Apply review: <per-item instructions, file:line>" --json

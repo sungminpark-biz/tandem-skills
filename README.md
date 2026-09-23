@@ -93,6 +93,11 @@ Claude will:
 
 No Orca? Claude still does steps 1–3, then tells you to run `/team implement <design doc>` in Grok Build.
 
+Optional: with the [ponytail](https://github.com/DietrichGebert/ponytail) plugin installed, step 5 also
+runs its `ponytail-review` on the diff — an over-engineering delete-list that Claude filters before
+passing it to Grok. Keep ponytail's always-on mode off (`~/.config/ponytail/config.json`:
+`{"defaultMode": "off"}`); the team skill never invokes the main `ponytail` skill.
+
 ### Foundation (a service from scratch)
 
 In Claude Code:

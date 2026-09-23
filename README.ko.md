@@ -90,6 +90,10 @@ Claude가:
 
 Orca가 없으면? Claude가 1~3단계까지 하고, Grok Build에서 `/team implement <설계 문서>`를 실행하라고 안내합니다.
 
+선택: [ponytail](https://github.com/DietrichGebert/ponytail) 플러그인이 설치되어 있으면 5단계에서 diff에 `ponytail-review`도
+돌립니다 — 과설계만 보는 삭제 목록이고, Claude가 걸러서 받아들인 것만 Grok에게 넘깁니다. ponytail의 상시 모드는
+꺼 두세요(`~/.config/ponytail/config.json`: `{"defaultMode": "off"}`). team 스킬은 `ponytail` 본체 스킬을 부르지 않습니다.
+
 ### 기초 설계 (서비스를 처음부터)
 
 Claude Code에서:
