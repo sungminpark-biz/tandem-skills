@@ -34,7 +34,12 @@ bash ~/.claude/skills/debate/grok-turn.sh <prompt-file> [session-id|new] [max-tu
 - First round `new`; later rounds pass the returned `sessionId` (Grok remembers the conversation,
   so never repeat earlier content).
 - Always pass prompts as files (`/tmp/team/<slug>/debate-r<N>.md`) to avoid shell quoting.
-- `max-turns` default 8: how many file reads/greps Grok may do. Use 12–15 for large code reviews.
+- `max-turns` default 8: how many file reads/greps Grok may do. Use 12–15 for large code reviews,
+  30 for a design review.
+- If the result has `"maxTurns": true`, resume **the same `sessionId`** with "Stop exploring. Answer
+  now in the required format from what you have." (max-turns 10). Never start a new session for it.
+- A new session's id is written to stderr and `<prompt dir>/last-grok-session` before Grok starts,
+  so a killed call can be resumed.
 - The script `cd`s to the repository root itself.
 - About $0.01–0.05 per turn.
 
@@ -118,5 +123,5 @@ Keep the full transcript per round in `/tmp/team/<slug>/debate-log.md` (show it 
 - Only Claude edits and runs things. Never tell Grok to "fix it".
 - No verification that writes to production databases or external services (reads only).
 - Keep round prompts short; the session remembers.
-- If `grok-turn.sh` returns `error`, retry once; if it keeps failing, continue without Grok and say
-  so in the report.
+- If `grok-turn.sh` returns `error` (other than `maxTurns`, handled above), retry once; if it keeps
+  failing, continue without Grok and say so in the report.
