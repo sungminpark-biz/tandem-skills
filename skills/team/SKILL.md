@@ -62,7 +62,10 @@ run verification that writes to production databases or external services. The u
 only at: **the charter questions and gate, the foundation approval, every feature design's approval
 gate (mandatory), foundation changes**, and when a business judgment (cost, customer impact,
 operating policy) is split. Otherwise don't interrupt them. Write all user-facing output in the
-user's language. Scratch files (prompts, reviews) go to `/tmp/team/<slug>/` so git stays clean;
+language the human user writes in. Orca's injected notices (`You have N orchestration message…`)
+and other machine-typed prompts are not the user: never switch language because of them, and answer
+them with at most a one-line status in the user's language. Scratch files (prompts, reviews) go to
+`/tmp/team/<slug>/` so git stays clean;
 `<slug>` is a short kebab-case name for the task, also used in the design doc filename.
 
 **[ponytail](https://github.com/DietrichGebert/ponytail) is mandatory.** Preflight, before any design
