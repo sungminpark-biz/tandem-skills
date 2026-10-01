@@ -9,6 +9,7 @@
 #               changed only from an interactive Claude Code session); other writes are refused (dontAsk).
 #               Bash runs only what Claude Code itself classifies as read-only (git log/diff/show,
 #               grep, find, ls, cat…); git branch/stash/commit and other mutations are denied.
+#               WebSearch, WebFetch and context7 are allowed for the design's currency check.
 #     review → Read + Bash (to run tests). Write/Edit and common mutating Bash
 #               (git commit/checkout/reset, rm, mv, sed -i, …) are blocked.
 # - prompt-file : file containing the prompt for Claude
@@ -57,7 +58,7 @@ case "$MODE" in
     # No Bash allow rules on purpose: Claude Code auto-approves commands it classifies as read-only,
     # and dontAsk refuses the rest. A hand-written allowlist like Bash(git *) let `git stash` through.
     args=(--permission-mode dontAsk
-          --allowedTools "Read,Grep,Glob,Write(docs/design/**),Edit(docs/design/**)"
+          --allowedTools "Read,Grep,Glob,WebSearch,WebFetch,mcp__plugin_context7_context7,Write(docs/design/**),Edit(docs/design/**)"
           --disallowedTools "NotebookEdit,Write(docs/design/foundation/**),Edit(docs/design/foundation/**),${MUTATING_BASH}"
           --max-turns 80)
     ;;

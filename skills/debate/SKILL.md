@@ -21,7 +21,7 @@ than either alone. The user sets nothing up and only receives the result.
 
 | | Claude (me) | Grok |
 |---|---|---|
-| Rights | edit, run, final synthesis | **read-only** (plan mode, cannot modify files) |
+| Rights | edit, run, final synthesis | **read-only** (no edit tools, read-only sandbox; read-only shell commands such as git diff/grep only) |
 | Role | driver: drafts, verifies, rebuts/accepts, applies consensus | critical co-designer: reads the repo directly and objects, proposes, asks — with evidence |
 
 ## Tool
@@ -41,6 +41,8 @@ bash ~/.claude/skills/debate/grok-turn.sh <prompt-file> [session-id|new] [max-tu
 - A new session's id is written to stderr and `<prompt dir>/last-grok-session` before Grok starts,
   so a killed call can be resumed.
 - The script `cd`s to the repository root itself.
+- `stopReason: "cancelled"` means Grok tried to write (edits are blocked); resume the same
+  `sessionId` once with "Read-only commands only. Answer now in the required format."
 - About $0.01–0.05 per turn.
 
 ## Procedure
@@ -60,6 +62,8 @@ Relevant files: <paths — so Grok reads them itself and cites evidence>
 
 Requirements:
 - Actually read the files and cite evidence (file:line). Mark guesses as guesses.
+- Read-only shell commands only (git diff/log/show, grep, rg, cat, ls). Never write files or redirect
+  output: a write attempt cancels your turn.
 - Use this format:
   ## Agree
   ## Disagree (evidence for each item)

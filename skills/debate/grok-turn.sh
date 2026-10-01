@@ -15,7 +15,13 @@
 #   Never start a new session for that.
 # A new session's id is chosen BEFORE starting and written to stderr and to
 #   <prompt-file dir>/last-grok-session, so a killed call can be resumed with its context.
-# Grok runs in plan mode (read-only) and cannot modify files. Editing is Claude's job.
+# Grok runs read-only (verified 2026-10-01, grok 1.0.46): read-only shell commands (git diff/log/show,
+# grep, rg, cat, ls…) run; its edit/write/question tools are removed so it cannot try them; any write
+# attempt through the shell still CANCELS the turn (stopReason "cancelled"), so prompts must say
+# "read-only commands only, no redirects". --sandbox read-only blocks writes to the project at the OS
+# level (it allows /tmp, ~/.grok); --no-plan keeps it out of plan mode, whose approval prompt cannot be
+# answered headlessly. Reasoning effort is not passed: it comes from ~/.grok/config.toml (xhigh).
+# Editing is Claude's job.
 # Always runs from the repository root so Grok's exploration is anchored the same way regardless of
 # where the caller is.
 set -euo pipefail
@@ -33,7 +39,9 @@ PROMPT_FILE="$(cd "$(dirname "$PROMPT_FILE")" && pwd)/$(basename "$PROMPT_FILE")
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo '{"error":"not inside a git repository"}'; exit 2; }
 cd "$REPO_ROOT"
 
-args=(--output-format json --permission-mode plan --max-turns "$MAX_TURNS" --prompt-file "$PROMPT_FILE")
+args=(--output-format json --permission-mode dontAsk --sandbox read-only --no-plan
+      --disallowed-tools search_replace,write,ask_user_question
+      --max-turns "$MAX_TURNS" --prompt-file "$PROMPT_FILE")
 if [[ "$SESSION" != "new" && -n "$SESSION" ]]; then
   args=(--resume "$SESSION" "${args[@]}")
 else

@@ -9,12 +9,12 @@
 
 ```
 Claude가 설계 초안 작성
-  → Grok이 적대적으로 검토 (저장소를 직접 읽고 설계를 깨뜨리려 시도)
+  → Claude 리뷰어와 Grok이 동시에 적대적으로 검토 (저장소를 직접 읽고 설계를 깨뜨리려 시도)
   → Claude가 항목별로 근거를 들어 반박/수용하고 문서 수정      (최대 2라운드)
   → ★ 사람이 설계 승인 ★
   → Grok이 구현 (자기 터미널 탭에서 도는 감독받는 워커)
      UI·프론트엔드 청크는 Claude Sonnet 워커가 대신 구현
-  → Claude가 diff 리뷰 + 테스트 재실행                          (최대 3라운드)
+  → Claude가 diff 리뷰 + 테스트 재실행 + ponytail-review          (최대 3라운드)
   → 같은 워커가 수정 → 보고
 ```
 
@@ -52,17 +52,31 @@ MCP도, 데몬도 없습니다. `claude -p`와 `grok`을 헤드리스로 부르�
 - [Claude Code](https://code.claude.com) ≥ 2.1 (`claude` PATH, 로그인)
 - [Grok Build](https://x.ai/cli) ≥ 1.0 (`grok` PATH, 로그인)
 - `jq`, `git`, `uuidgen` (또는 python3)
+- [ponytail](https://github.com/DietrichGebert/ponytail) — Claude Code와 Grok Build **양쪽 모두**에 필요.
+  없으면 `/team`이 시작하지 않음 (설치 참고)
+- 권장: Claude Code의 [context7](https://github.com/upstash/context7) 플러그인 — 설계의 최신성 확인용
+  (`/plugin install context7@claude-plugins-official` 후 `/mcp`로 한 번 로그인)
 - [Orca](https://github.com/stablyai/orca) — 기본 기능 경로에서 필요 (Grok이 터미널 탭이 보이는 Orca
   워커로 실행됨). 기초 설계 모드와 Grok 주도 대체 경로는 없어도 동작
 
-Claude Code 2.1.273–2.1.286 (Claude Opus 5, Sonnet 5.5 워커), Grok Build 1.0.30–1.0.46, Orca 1.4.204, macOS에서 테스트.
+Claude Code 2.1.273–2.1.286 (Claude Opus 5 / 5.5, Sonnet 5.5 워커), Grok Build 1.0.30–1.0.46, Orca 1.4.204–1.4.215, macOS에서 테스트.
 
 ## 설치
 
 ```bash
 git clone https://github.com/sungminpark-biz/tandem-skills.git
-cd tandem-skills && ./install.sh          # skills/ 를 ~/.claude/skills/ 로 복사
+cd tandem-skills && ./install.sh          # skills/ 를 ~/.claude/skills/ 로, team-reviewer
+                                          # 서브에이전트를 ~/.claude/agents/ 로 복사
 # 또는: ./install.sh --link        # 심볼릭 링크 — git pull 하면 바로 반영
+```
+
+ponytail (필수):
+```bash
+# Claude Code — 프롬프트 두 번에 나눠서
+/plugin marketplace add DietrichGebert/ponytail
+/plugin install ponytail@ponytail
+# Grok Build (플러그인은 켜기 전까지 꺼져 있음)
+grok plugin install DietrichGebert/ponytail --trust && grok plugin enable ponytail
 ```
 
 확인:
@@ -83,11 +97,13 @@ Orca 워크트리 안의 Claude Code에서:
 
 Claude가:
 1. `docs/design/<날짜>-<slug>.md` 작성 (범위, 시그니처, 순서, 완료 기준, 일부러 안 만드는 것)
-2. `grok-turn.sh`로 Grok의 적대 검토를 받고 (치명 / 누락 / 모호, 근거 첨부) 항목별로 코드를 확인해 문서 수정 또는 반박
+2. 읽기 전용 Claude 리뷰어 서브에이전트(`team-reviewer`)와 Grok(`grok-turn.sh`)에게 동시에 적대 검토를 받고
+   (치명 / 누락 / 모호, 근거 첨부) 항목별로 코드를 확인해 문서 수정 또는 반박
 3. **멈추고 요약을 보여줌 — "승인"이라고 할 때까지 아무것도 구현하지 않음**
-4. 구현자를 Orca orchestration 워커로 띄우고 질문에 답함 — Grok(`worker-start --agent grok`), UI 작업이면
-   Claude Sonnet 워커(`--agent claude --model sonnet`)
-5. diff 리뷰 + 테스트 재실행, 승인될 때까지 같은 워커에게 수정 지시 (최대 3라운드)
+4. 구현자를 Orca orchestration 워커로 띄우고 질문에 답함 — Grok(`worker-start --spec … --agent grok`), UI 작업이면
+   Claude Sonnet 워커(`--agent claude --model sonnet`). 둘 다 설계 범위 안에서 ponytail로 코드를 씀
+5. diff 리뷰(Spec 체크: 누락, 요청 안 한 것, 잘못 구현 — 각각 설계 문서 인용) + 워커 보고를 믿지 않고
+   테스트를 직접 재실행 + `ponytail-review`, 승인될 때까지 같은 워커에게 수정 지시 (최대 3라운드)
 6. 보고: 검토로 바뀐 것, 변경 파일, 테스트, 비용
 
 Orca가 없으면? Claude가 1~3단계까지 하고, Grok Build에서 `/team implement <설계 문서>`를 실행하라고 안내합니다
@@ -101,10 +117,10 @@ Orca가 없으면? Claude가 1~3단계까지 하고, Grok Build에서 `/team imp
 탭에서 돕니다. Sonnet이 짠 diff는 리뷰어와 같은 Claude 계열이라 Grok도 함께 리뷰합니다(결과를 기다리지는
 않음). `sonnet`은 별칭이어서 워커가 항상 최신 Sonnet을 따라갑니다.
 
-선택: [ponytail](https://github.com/DietrichGebert/ponytail) 플러그인이 설치되어 있으면 5단계에서 diff에 `ponytail-review`도
-돌립니다 — 과설계만 보는 삭제 목록이고, Claude가 걸러서 받아들인 것만 워커에게 넘깁니다. ponytail의 상시 모드는
-꺼 두세요(`~/.config/ponytail/config.json`: `{"defaultMode": "off"}`). team 스킬은 `ponytail` 본체 스킬을 부르지 않습니다.
-Grok Build도 Claude Code 플러그인 스킬을 목록에 올리므로, 워커 스펙에서 구현자에게도 부르지 말라고 지시합니다.
+ponytail은 워크플로의 일부입니다. 그 사다리(필요한가? → 재사용 → 표준 라이브러리 → 네이티브 → 한 줄)가 설계가 제안하는
+것과 코드 작성 방식을 정하고, `ponytail-review` 삭제 목록은 모든 코드 리뷰에서 돌며 Claude가 걸러서 반영합니다. 상시
+모드는 켜 둬도 됩니다. team 프로세스와 부딪히는 곳에서는 team 규칙이 이깁니다 — 설계 문서의 모든 섹션은 빠짐없이 쓰고,
+승인 게이트는 건너뛰지 않으며, 구현자는 설계에 있는 것을 빼기 전에 먼저 묻습니다.
 
 ### 기초 설계 (서비스를 처음부터)
 
@@ -158,9 +174,9 @@ Grok이 Claude를 헤드리스로 불러(`claude-turn.sh`; `docs/design/**`만 �
 
 | 모드 | 권한 | 효과 |
 |---|---|---|
-| `claude-turn.sh design` | `--permission-mode dontAsk` + `Write(docs/design/**)`, `Edit(docs/design/**)` (`docs/design/foundation/**` 제외), Bash 허용 규칙 없음, 변경 git/셸 명령 거부 | 설계문서만 쓸 수 있음. Bash는 Claude Code가 읽기 전용으로 판정한 것만 실행 — `git stash`, `git branch`, `touch`, `>` 리다이렉트는 거부 |
+| `claude-turn.sh design` | `--permission-mode dontAsk` + `Write(docs/design/**)`, `Edit(docs/design/**)` (`docs/design/foundation/**` 제외), WebSearch/WebFetch/context7, Bash 허용 규칙 없음, 변경 git/셸 명령 거부 | 설계문서만 쓸 수 있음. Bash는 Claude Code가 읽기 전용으로 판정한 것만 실행 — `git stash`, `git branch`, `touch`, `>` 리다이렉트는 거부 |
 | `claude-turn.sh review` | `dontAsk` + `Bash` 허용, `Write`/`Edit`와 `git commit/checkout/reset`, `rm`, `mv`, `sed -i`… 거부 | 테스트는 돌리되 파일은 못 바꿈 |
-| `grok-turn.sh` | `--permission-mode plan` | Grok 읽기 전용 |
+| `grok-turn.sh` | `--permission-mode dontAsk --sandbox read-only --no-plan`, 편집/쓰기/질문 도구 제거 | Grok은 파일을 읽고 읽기 전용 명령(`git diff`, `grep`…)을 실행. 편집은 불가, 셸로 쓰기를 시도하면 턴이 취소되고, OS sandbox가 프로젝트 쓰기를 어차피 막음 |
 | 승인 게이트 | 스킬 규칙 | 설계(그리고 기초 설계) 확정 후 드라이버는 턴을 끝내고 기다려야 함 |
 
 실전에서 나온 디테일:
@@ -183,17 +199,23 @@ Grok 적대 검토 한 턴은 약 $0.25~0.4.
 - 승인 게이트는 모델 준수 문제이지 하드 블록이 아님.
 - 기본 기능 경로는 Orca 필요. 기초 설계 모드와 Grok 주도 대체 경로는 어디서든 동작.
 - 기초 설계 모드는 새로 추가되어 아직 전체 실행 전 — 첫 실행을 지켜보세요.
-- Claude 주도 실행에서 Grok 워커가 자기 편집 승인 프롬프트에서 멈출 수 있음; 스킬이 Claude에게 푸는 법을 알려 주지만 탭을 지켜보세요.
+- Claude 주도 실행에서 워커가 사람만 답할 수 있는 프롬프트(plan 모드 진입, 질문 카드)에서 멈출 수 있음. 스킬이
+  `worker-show`의 `agentWait`로 감지해 답하지만 탭을 지켜보세요.
+- 헤드리스 Grok 리뷰어는 쓰기를 시도하면 턴이 취소됨. 스킬이 "읽기 전용 명령만"이라고 한 번 재개함.
 - Claude Code가 아직 신뢰하지 않은 폴더에서 Claude(Sonnet) 워커를 띄우면 폴더 신뢰 확인 창에서 종료됨 (기본 선택이 "No, exit"). 드라이버가 도는 워크트리에서는 문제없고, 다른 위치라면 먼저 그곳에서 `claude`를 한 번 열어 수락하세요.
 
 ## 구조
 
 ```
 skills/
-  team/SKILL.md          워크플로 (0: 모드와 경로, F: 기초 설계, C: Claude 주도, G: Grok 주도)
+  team/SKILL.md          워크플로 (0: 모드와 경로, 공통 규칙과 템플릿, C: Claude 주도)
+  team/foundation.md     F: 기초 설계 모드   (그 경로를 탈 때만 읽음)
+  team/grok-driven.md    G: Grok 주도 경로   (그 경로를 탈 때만 읽음)
   team/claude-turn.sh    헤드리스 Claude: design | review   (Grok 주도 경로)
   debate/SKILL.md        논의 루프
   debate/grok-turn.sh    헤드리스 Grok: 읽기 전용 비평가     (Claude가 주도하는 모든 적대 검토)
+agents/
+  team-reviewer.md       /team용 읽기 전용·재개 가능한 Claude 리뷰어 서브에이전트
 install.sh
 ```
 

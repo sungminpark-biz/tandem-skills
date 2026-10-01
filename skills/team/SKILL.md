@@ -5,7 +5,8 @@ description: >-
   Claude Sonnet worker). Feature mode (default): Claude
   drafts the design -> a Claude reviewer subagent and Grok attack it in parallel -> Claude revises ->
   human approves -> Grok (Sonnet for UI chunks) implements as an Orca worker (or Claude, if the user
-  asks) -> a Claude reviewer subagent reviews the code. Foundation mode ("/team foundation
+  asks) -> a Claude reviewer subagent reviews the code, plus a ponytail over-engineering pass (ponytail is mandatory in
+  both tools). Foundation mode ("/team foundation
   <service>"): for a service designed from scratch or re-founded - Claude drafts the charter with the
   user, the expensive-to-reverse decisions and a slice map, Grok attacks them, the human approves,
   then every slice runs through feature mode. Run it from Claude Code (the default). From Grok Build,
@@ -20,33 +21,35 @@ allowed-tools: Bash, Read, Grep, Glob, Edit, Write
 # /team — Claude designs and reviews, Grok implements
 
 This skill is loaded by both Claude Code and Grok Build. First pick the mode, then the path.
+Foundation mode and the Grok-driven path live in their own files next to this one; read a file only
+when its path is taken.
 
 ## 0. Mode and path
 
 **Mode** (from the request):
 - **Foundation** — `/team foundation …`, or the request is a new service built from scratch, or a
   re-founding that changes several expensive-to-reverse decisions at once, or a change to an existing
-  foundation → [F](#f-foundation-mode)
+  foundation → F: read `~/.claude/skills/team/foundation.md` and follow it
 - **Feature** — everything else: one change set that fits one implementation run → feature mode
 
 **Path** (from who is executing):
-- **I am Claude** → foundation: F. Feature: **[C. Claude-driven](#c-claude-driven-feature-mode-default)
+- **I am Claude** → foundation: F (`foundation.md`). Feature: **[C. Claude-driven](#c-claude-driven-feature-mode-default)
   (the default)**. C needs this worktree to be Orca-managed: `orca worktree current --json` returns
   `"ok": true` (`orca status` is not enough — it succeeds anywhere). No Orca → still run C-1 up to
   and including the approval gate, then tell the user to open Grok Build in this repo and run
   `/team implement <design doc path>` (implementer `sonnet`: open `claude --model sonnet` in this repo,
   have it implement the design doc in its order and scope without committing, then come back here
   for C-4).
-- **I am Grok** → [G. Grok-driven](#g-grok-driven-feature-mode-fallback) (the fallback), including the
-  `/team implement <design doc path>` entry. Foundation mode is Claude-only: if asked for it, tell the
+- **I am Grok** → G, the fallback: read `~/.claude/skills/team/grok-driven.md` and follow it, including
+  the `/team implement <design doc path>` entry. Foundation mode is Claude-only: if asked for it, tell the
   user to run `/team foundation …` in Claude Code, and stop.
 
 **When a feature doesn't fit** (checked while designing):
 - **Too big for one run** (roughly >30 files or >1 hour of implementation) → split it. With a
   foundation, add the pieces to `slices.md` as new slices; without one, split into sequential feature
   runs, or propose foundation mode if this is really a service being built from scratch.
-- **Needs a new expensive-to-reverse decision, or contradicts the foundation** →
-  [F-change](#f-change-changing-the-foundation). Claude runs it; Grok stops and hands it to the user.
+- **Needs a new expensive-to-reverse decision, or contradicts the foundation** → F-change
+  (`foundation.md`). Claude runs it; Grok stops and hands it to the user.
 
 ## Shared rules
 
@@ -62,10 +65,25 @@ operating policy) is split. Otherwise don't interrupt them. Write all user-facin
 user's language. Scratch files (prompts, reviews) go to `/tmp/team/<slug>/` so git stays clean;
 `<slug>` is a short kebab-case name for the task, also used in the design doc filename.
 
-If the [ponytail](https://github.com/DietrichGebert/ponytail) plugin is installed, never invoke its
-main `ponytail` skill during a team run: its always-on rules ("no design notes", "shortest diff",
-"never stall on a default") fight T1, the approval gates and "follow the design's scope". Its
-`ponytail-review` skill is used in C-4 only.
+**[ponytail](https://github.com/DietrichGebert/ponytail) is mandatory.** Preflight, before any design
+work: `ponytail:ponytail-review` is in Claude Code's skill list, and `grok plugin list` shows
+`ponytail` (Grok keeps plugins off until `grok plugin enable ponytail`). Either missing → stop and
+give the user the install commands (`/plugin install ponytail@ponytail`; `grok plugin install
+DietrichGebert/ponytail --trust` + `grok plugin enable ponytail`). If ponytail's always-on mode is off
+in this session, load the `ponytail` skill through the Skill tool before designing.
+- **Ponytail decides what gets built and how the code is written**: its ladder (needed at all? →
+  reuse → stdlib → native → installed dependency → one line → minimum code) applies to every component
+  a design proposes and every line the implementer writes.
+- **Team rules decide the process and the documents, and win where the two conflict**: every T1
+  section and every review/report format is explicitly requested ("no design notes" doesn't apply to
+  them); the approval gates are never defaulted past ("never stall on a default" doesn't apply to
+  them); the implementer builds everything the design specifies — a cut it wants is a question (C-3)
+  or a review item, never a silent omission.
+- Claude Code runs ponytail through its hooks — subagents and Sonnet workers included. Grok Build has
+  no such hook, so the worker spec tells the implementer to use the `ponytail` skill (C-2, G-2).
+- Never type `/ponytail…`, "stop ponytail" or "normal mode" as a prompt during a run — they flip
+  ponytail's global mode flag for every session. Invoke its skills through the Skill tool.
+- The `ponytail-review` over-engineering pass runs in every code review (C-4, G-3).
 
 Design quality bar (applies to every design doc, decision record, adversarial review and approval
 summary):
@@ -78,8 +96,8 @@ summary):
 3. **Measured, not guessed.** Ground scale and scope in numbers from read-only sources (DB row
    counts, traffic, infra inventory via cloud CLI describe/list). Never write to production. A new
    service with no traffic uses the charter's design caps as its scale evidence.
-4. **No over-engineering.** Every component must justify itself against the measured scale (or the
-   design caps). The design lists what was deliberately *not* built.
+4. **No over-engineering.** Every component must pass ponytail's ladder and justify itself against
+   the measured scale (or the design caps). The design lists what was deliberately *not* built.
 
 If a source the bar asks for can't be reached (a tool is refused, a service isn't authenticated),
 write `not verified: <reason>` in that place. Never guess to fill the gap.
@@ -111,8 +129,8 @@ charter (with the user) → ★ charter OK ★ → decision records + slice map 
 Claude design → adversarial review (T6: Claude reviewer ∥ Grok; wait for Claude only)
 → Claude rebut/accept + revise doc → (re-review ≤2)
 → ★ human approval gate (stop and wait) — Grok's late result is merged here ★
-→ Grok implements (UI chunks: Sonnet; or Claude, if asked) → Claude reviewer subagent code review
-→ fixes (≤3) → report
+→ Grok implements with ponytail (UI chunks: Sonnet; or Claude, if asked) → Claude reviewer subagent
+  code review + ponytail-review → fixes (≤3) → report
 ```
 
 ---
@@ -145,8 +163,8 @@ Method: don't explore for long. **Within 10 minutes, Write the document skeleton
 above + what you already know), then fill it in with Edit as you investigate.** Do not exceed 40 tool
 calls. If this round has a defined implementation slice, detail only that slice and list the rest as
 one-liners under a "Follow-ups" section. If the design stops fitting (section 0), stop and report that
-instead of writing a bigger doc. A source you can't reach → `not verified: <reason>`. Don't invoke
-the `ponytail` skill while designing; every section above is requested.
+instead of writing a bigger doc. A source you can't reach → `not verified: <reason>`. Ponytail shapes
+what the design proposes, not the document: every section above is requested, so write each in full.
 
 ### T2. Adversarial design review (checklist + output format)
 Read the design doc **in full** and verify it against the repository directly. The goal is to
@@ -211,9 +229,13 @@ Reply "approve" or "go" to proceed. Otherwise tell me what to change.
 ### T4. Code review format
 ```
 ## Verdict: APPROVE | REQUEST_CHANGES
+## Spec check — quote the design doc line for each item
+- Missing or partial: …
+- Not asked for (scope creep): …
+- Implemented but looks wrong: …
 ## Required changes (file:line, what and how)
 ## Suggestions (optional)
-## Test results
+## Test results (each command you ran and its output: pass/fail counts, exit code)
 ```
 
 ### T5. Report
@@ -224,8 +246,9 @@ Reply "approve" or "go" to proceed. Otherwise tell me what to change.
 - Slice: S<n> → done (slices.md updated); next: S<m> (todo, dependencies done) — say "go" to start it
 - Files changed: … (Grok / Sonnet per chunk, or Claude if the user asked)
 - Code review: N rounds (Claude reviewer subagent; Grok too with --reviewer grok|both or on Sonnet chunks) — what it fixed: …
-- Over-engineering pass (if ponytail): N suggested → N applied (net −N lines), N rejected (why)
-- Tests: <command> passed
+- Over-engineering pass (ponytail-review): N suggested → N applied (net −N lines), N rejected (why)
+- Tests: <command> → the output of Claude's own run after the last fix (N passed, 0 failed, exit 0);
+  never "should pass" or the worker's word
 - Cost and time: Grok USD per call and minutes per review; Claude reviewer minutes (what is known)
 ## Open issues / decisions for the user
 ```
@@ -246,17 +269,23 @@ different model does. So both run, at the same moment, and only the Claude revie
 **1. One request file, two reviewers.** Write `/tmp/team/<slug>/<name>-req.md` once: the absolute
 paths to review, every fact you already measured (so neither reviewer spends turns re-deriving it),
 the checklist, and the T2 output format. Then, in the same message:
-- **Claude reviewer**: the Agent tool with `subagent_type: "Plan"` (read-only file tools + Bash; no
-  `Plan` type → `general-purpose` with the same instruction), `run_in_background: true`, prompt = the request file's contents plus: "Review only; do not edit
-  files. Do not touch databases or external services (no MCP write tools, no integration tests that
-  write, no deploys)." It starts with a fresh context, so the prompt must be self-contained.
-- **Grok**: run in the background (Bash `run_in_background: true`):
+- **Claude reviewer**: the Agent tool with `subagent_type: "team-reviewer"`
+  (`~/.claude/agents/team-reviewer.md`: read-only, loads CLAUDE.md, returns an agent ID so round 2 can
+  resume it; missing → `general-purpose` with the same read-only instruction). Never `Plan`: it is
+  one-shot (no agent ID) and skips CLAUDE.md. Subagents run in the background by default; the Agent
+  tool no longer takes `run_in_background`. Prompt = the request file's contents plus: "Review only;
+  do not edit files. Do not touch databases or external services (no MCP write tools, no integration
+  tests that write, no deploys)." It starts with a fresh context, so the prompt must be self-contained.
+- **Grok**: Bash with `run_in_background: true` and `timeout: 3600000` (background commands stop at
+  their timeout, 30 min by default, and a Grok review takes ~20 min before any resume; resumes use
+  the same settings):
   ```bash
   bash ~/.claude/skills/debate/grok-turn.sh /tmp/team/<slug>/<name>-req.md new 20
   ```
-  Grok runs headless in plan mode: **a shell command cancels its turn** (`stopReason: "cancelled"`,
-  seen 2026-09-23). The request file must say: "Do not run shell commands; use file-read tools only."
-  Hand it diffs as files (`git diff > /tmp/team/<slug>/<name>.diff`) instead of asking it to run git.
+  Grok runs headless read-only (verified 2026-10-01): read-only shell commands (git diff/log/show,
+  grep, rg, cat, ls) work and its edit tools are removed, but **any write attempt cancels its turn**
+  (`stopReason: "cancelled"`). The request file must say: "Read-only commands only; never write files
+  or redirect output."
 
 **2. Wait for the Claude reviewer only.** When it returns: check every item against the code
 yourself, accept (edit the doc) or rebut (with evidence), then go on (to the gate, or round 2).
@@ -268,9 +297,9 @@ yourself, accept (edit the doc) or rebut (with evidence), then go on (to the gat
   substantially → show the gate again.
 - After approval → an accepted Critical pauses the affected work and goes to the user; everything
   else is folded into the code review.
-- Grok's handling, unchanged: `"maxTurns": true` → resume the same `sessionId` with "Stop exploring.
+- Grok's handling: `"maxTurns": true` → resume the same `sessionId` with "Stop exploring.
   Write the review now in the required format from what you have." (max-turns 10). `stopReason:
-  "cancelled"` or `text` without `## Verdict:` → resume once with "Do not run shell commands. Answer
+  "cancelled"` or `text` without `## Verdict:` → resume once with "Read-only commands only. Answer
   in the required format." Killed → the id is in `/tmp/team/<slug>/last-grok-session`; resume it.
   Still nothing → Grok's review **failed**; say so at the gate (never read it as "no Critical items").
 
@@ -287,139 +316,6 @@ Save each reviewer's text to `/tmp/team/<slug>/<name>-<claude|grok>-<N>.md`.
 
 ---
 
-## F. Foundation mode
-
-For a service designed from scratch, or a re-founding. **Claude only.** Orca is not required (Grok is
-called headlessly, read-only). Output lives in `docs/design/foundation/` and is **canonical**: feature
-design docs cite it and never restate or override it. It changes only through F-change.
-```
-docs/design/foundation/
-  charter.md                what the service is — the user's decisions
-  decisions/NNN-<slug>.md   one expensive-to-reverse decision each
-  slices.md                 the ordered slice map + status
-```
-Scratch: `/tmp/team/<slug>/` with `<slug>` = `foundation-<service>` (so T6's paths hold as written).
-
-### F-0. Inventory
-- A foundation already exists → update it; don't recreate it. A request to change it → F-change.
-- Read the existing design docs, code and infra. **One canonical place per decision**: if an existing
-  doc already settles something, prefer extracting it into the foundation and leaving a pointer in the
-  old doc; never keep two canonical copies. Whether to edit the user's existing docs is one of the F-1
-  questions.
-- Measure what already exists (read-only): tables and row counts, deployed services, traffic.
-
-### F-1. Charter (the user decides; Claude drafts) → `charter.md`
-Sections, 1–2 pages in total:
-```
-- One line: what the service does, for whom
-- Who, and what each does: the core flows, one short paragraph each
-- Success / failure: observable signals, not adjectives
-- Design caps: the scale the design must hold (users, companies, orders, catalog, regions…) —
-  the scale evidence while there is no traffic
-- Not doing: explicit non-goals
-- Open questions
-```
-Draft from the request, the existing docs and F-0. **Mark every unknown as a question — don't guess
-business decisions.** Ask in batches of up to 4 (AskUserQuestion when available: concrete options,
-the recommended one first). Grok does not review the charter — these are product calls, not code.
-**Gate: show the charter summary (one line, caps, non-goals, open questions left) and end your turn.**
-Go on to F-2 only on "OK" / "approve" / "go"; anything else → revise and show it again. Open questions
-that a decision depends on must be answered before that decision is written.
-
-### F-2. Decision records → `decisions/NNN-<slug>.md`
-Only decisions that are **expensive to reverse once code or data depend on them**. Check each
-candidate and skip what doesn't apply: data model and source of truth (ledger), identity/auth and
-account linking, tenancy and permissions, external integrations (channels, payments, carriers),
-money and document flow, runtime/deployment and background work (queues, cron, webhooks),
-observability. Cheap-to-reverse choices (screen layout, copy, a library used by one screen) belong
-in slice designs — leave them out.
-```
-# NNN <decision title>
-Status: proposed | accepted | superseded by NNN | rejected
-Context: the charter sections and measured facts this rests on
-Decision: …
-Options considered: reuse an existing asset / a platform primitive / the simplest option — and why each was rejected
-Currency: the currently recommended approach, with a date-stamped source
-Consequences: what this commits us to; what gets harder
-Revisit when: the observable signal that would make this wrong (tie it to the design caps)
-Not built: …
-```
-Keep each record to about one page. Write every record's skeleton first, then fill them in.
-
-### F-3. Slice map → `slices.md`
-- **S1 is a walking skeleton**: the thinnest end-to-end path that exercises every accepted decision
-  once and runs in a non-production environment (e.g. inbound event → source-of-truth row → one
-  screen → preview deploy). No polish. If that can't fit one run, split it into S1a, S1b… that
-  together touch every decision, chained with `depends on` — the size rule wins.
-- Then order by risk (the least-proven decision first), then by value.
-- Each slice fits **one feature run**: roughly ≤30 files and ≤1 hour of implementation. Split
-  anything larger.
-- Per slice: goal (one line) / decisions exercised (NNN) / rough scope (modules or directories, not
-  file lists) / definition of done / depends on / status.
-- Status: `todo` → `designed` (its T3 gate approved) → `done` (T5 reported). `blocked: <reason>` when
-  it stops (F-change, design still contested after 2 review rounds, code review not approved after 3);
-  back to `designed` when its revised design is approved again.
-- Detail S1–S3 only; the rest are one line each.
-
-### F-4. Adversarial review (T6, read-only)
-T6 with the request `/tmp/team/<slug>/foundation-review-req.md`: the absolute paths of the charter,
-every decision record and `slices.md`, this checklist, and the T2 output format.
-- Contradictions: decision vs charter, decision vs decision, slice vs decision
-- Missing expensive decisions (what would hurt to change after S3?); listed decisions that are
-  actually cheap to reverse (move them into slices)
-- Rewrite vs reuse, stale patterns, over-engineering against the design caps (cite them), unmeasured claims
-- Does S1 (or S1a, S1b…) really touch every decision end to end? Is any slice too big for one run?
-
-Check every item against the code and docs **yourself**, then accept (edit the doc) or rebut (with
-evidence). ≤2 rounds (T6 step 4). Items still contested after 2 rounds go to the user at F-5 with
-both sides' evidence.
-
-### F-5. Foundation approval gate
-```
-## Foundation ready — approval requested
-- Charter: docs/design/foundation/charter.md — one line: …
-- Decisions (N): NNN <title> — one line each (+ what the review changed)
-- Slices: S1 <walking skeleton> / S2 … / S3 … (+N more, one line each)
-- Adversarial review: Claude reviewer raised N / Grok raised M → Claude accepted N / rebutted N
-  (or: a review failed or is still running — why)
-- Contested (your call): …
-- Open questions: …
-Reply "approve" to accept the foundation and start S1. Otherwise tell me what to change.
-```
-End your turn and wait. Approved ("approve" / "go" / "OK") → set the decision records to `accepted`, then start S1 at **C-1**:
-Claude writes S1's design, runs its review and its own T3 gate. (Without Orca, the hand-off to Grok
-happens after that gate, as in section 0 — never hand `slices.md` to Grok as a design.)
-
-### F-change. Changing the foundation
-Entered two ways: a slice's design, implementation or review shows that a charter line or an accepted
-decision is wrong (or needs a new expensive-to-reverse decision), or the user asks for a change
-directly (`/team foundation change: …`, possibly handed over from G).
-1. **Stop the slice, if one is in progress.** In C with a worker running: reply to its question (or
-   `orca terminal send --terminal <assignee_handle> --text "<msg>" --enter --json`) with "Stop: the
-   design is changing. Don't edit further; send worker_done with the files modified so far." Wait for
-   it as in C-3; once the dispatch has settled, `orca orchestration worker-release --dispatch <ctx_id>
-   --json`. If it never settles, leave it running and tell the user — never release on idle (C-5).
-   Set the slice to `blocked: <reason>`. A feature design doc never overrides the foundation.
-2. Write a new decision record (`proposed`) that supersedes the old one (charter: edit it and add a
-   dated change line).
-3. T6 review of the change (only the F-4 checklist items the change touches, ≤2 rounds), then show
-   the change to the user and end your turn.
-4. **Rejected** → set the new record to `rejected`, revert the charter edit, and put the stopped
-   slice back to its previous status; ask the user how to proceed with it.
-   **Approved** → new record `accepted`, old record `superseded by NNN`. In `slices.md`: update the
-   `todo`/`designed` slices it affects; for `done` slices built on the old decision, add a rework slice
-   ("S<k>: move S<n> to NNN") instead of reopening them.
-5. Resume the stopped slice, if any, as a feature design again: revise its design doc to match,
-   starting from what the worktree already contains (list the partial work the stopped worker left),
-   run T6 on it (a fresh ≤2 count), then its T3 gate — and continue as T3 says (C-2 with a new task
-   spec, or the no-Orca hand-off).
-
-**In G** Grok cannot run this (foundation work is Claude-only, and headless design mode cannot write
-`docs/design/foundation/`): stop implementing, set the slice to `blocked: <reason>`, tell the user to
-run `/team foundation change: <what and why>` in Claude Code, and stop.
-
----
-
 ## C. Claude-driven feature mode (default)
 
 Claude designs and reviews; the implementer (Grok, or Sonnet for UI chunks) is launched as an Orca
@@ -430,6 +326,9 @@ with `worker_done`. A full run on 2026-09-21 went through 2 design-review and 3 
 Verified 2026-10-01 (Orca 1.4.204, Claude Code 2.1.286): `worker-start --agent claude --model sonnet`
 → the worker came up as Sonnet 5.5, implemented a UI chunk from the design doc and replied with
 `worker_done`.
+Orca commands below follow Orca's bundled guide (`orca skills get orchestration`, Orca 1.4.215+;
+1.4.217 fixed stale worker handles — update through the Orca app, not brew). Where a flag here and
+that guide disagree on your version, the guide wins.
 
 ### C-1. Design doc + adversarial review (T6, mandatory)
 If `docs/design/foundation/` exists, read the charter, the accepted decisions and `slices.md` first.
@@ -452,15 +351,19 @@ of done, then goes to C-4 (the reviewer subagent reviews Claude's diff the same 
 reserves for after the code review (applying a migration, deploying, changing platform settings) still
 wait for C-4's APPROVE-or-fixed. Otherwise:
 ```bash
-orca orchestration run-create --objective "<feature>" --json
-orca orchestration task-create --spec "<spec>" --json                     # → task_id
-orca orchestration worker-start --task <task_id> --worktree current --agent grok --timeout-ms 120000 --json
+orca status --json
+orca orchestration run-create --objective "<feature>" --json               # → run_id
+orca orchestration worker-start --spec "<spec>" --worktree current --agent grok --timeout-ms 120000 --json
 #   implementer sonnet: --agent claude --model sonnet instead of --agent grok
-orca orchestration dispatch-show --task <task_id> --json                   # → ctx_… , assignee_handle
+#   one call creates the Task and its Dispatch (ctx_…); give this Bash call timeout ≥180000
+orca orchestration worker-show --dispatch <ctx_id> --json                  # → the worker's terminal handle
 orca worktree set --worktree active --comment "<grok|sonnet> implementing: <feature>" --json
 ```
+`worker-start` exits non-zero → don't relaunch: read the receipt's `failedStage` and
+`residualResources`, then `orca skills get orchestration --reference references/recovery-and-cleanup.md`.
+
 For a Sonnet worker, check the model on the worker's screen
-(`orca terminal read --terminal <assignee_handle> --screen --json`, which shows e.g. "Sonnet 5.5"). The
+(`orca terminal read --terminal <handle> --screen --json`, which shows e.g. "Sonnet 5.5"). The
 receipt's `launch.effective` only echoes the alias. If it isn't a Sonnet model, stop and tell the
 user before any code is written.
 
@@ -476,177 +379,85 @@ Read the design doc first: <absolute path>. Implement all of it, in its implemen
 (or only "<part>" when this task is one of several parallel chunks).
 Definition of done: <test commands/conditions>. Include the passing results in the worker_done body.
 Rules: do not modify files outside the doc's "scope of change". If you believe the design must be
-deviated from, ask before implementing. Do not commit. Do not invoke the `ponytail` skill. On
-completion pass every modified file in worker_done --files-modified.
+deviated from, ask before implementing — with the preamble's `ask` command, never a local question
+prompt — and don't enter plan mode. Do not commit. On completion pass every modified file in
+worker_done --files-modified.
+Ponytail: load the `ponytail` skill (full) before writing code and follow it for how you write it.
+The design doc and these rules win where they conflict: build everything the design specifies; if
+ponytail says a part should be cut, ask instead of dropping it.
 ```
-The `ponytail` line is there because Grok Build also lists Claude Code plugin skills (`grok inspect`).
-Without it, a worker could auto-invoke ponytail's always-on rules in the middle of a team run.
+A Sonnet worker already runs ponytail through Claude Code's hooks; the line matters for Grok, which
+has none.
 
 Default: one Task = one worker, same worktree. Parallelize only for independent chunks whose files
 don't overlap, for example a Grok chunk and a Sonnet chunk of the same feature.
 
 ### C-3. Wait + answer questions
 ```bash
-orca orchestration check --wait --types worker_done,escalation,question --timeout-ms 900000 --json
+orca orchestration check --wait --types worker_done,escalation,question --timeout-ms 540000 --json
 orca orchestration reply --id <msg_id> --body "<answer>" --json               # for question
-orca orchestration check --ack <deliveryId> --wait --types worker_done,escalation,question --timeout-ms 900000 --json
+orca orchestration check --ack <deliveryId> --wait --types worker_done,escalation,question --timeout-ms 540000 --json
 ```
-Timeouts, `count: 0` and heartbeats are not failures (implementation takes 15–60 min). Progress:
-`worker-read --dispatch <ctx_id> --limit 50 --json`. If the worker's output stalls for a long time,
-`orca terminal read --terminal <assignee_handle> --json` — if the worker's TUI is **waiting on an
-edit/command approval prompt**, release it with
-`orca terminal send --terminal <assignee_handle> --text "y" --enter --json` (or whatever key the
-prompt asks for). If the worker's question means the design must change, revise the doc before
-answering; a foundation-level change → F-change (it starts by stopping the worker). While a worker
-is dispatched, Claude does not edit source files.
+Give each wait Bash `timeout: 600000`: Claude Code stops a foreground command at 10 minutes, so
+`--timeout-ms` stays ≤540000 and you simply wait again. Timeouts, `count: 0` and heartbeats are not
+failures (implementation takes 15–60 min). `check` replays the oldest batch until it is acked:
+process every message in it before `--ack`, and accept a `worker_done` only from the Dispatch you are
+waiting for (an earlier one is stale; ignore it). Progress: `worker-read --dispatch <ctx_id> --limit
+50 --json`. **After three empty waits in a row**, inspect instead of waiting blindly:
+`orca orchestration worker-list --run <run_id> --include-remote --json` (act on each row's
+`projection.nextAction`) and `orca orchestration worker-show --dispatch <ctx_id> --json` — a non-null
+`observation.agentWait` names a prompt only a human can answer (plan-mode entry, a question card),
+with its evidence; answer it with `orca terminal send --terminal <handle> --text "<key>" --enter
+--json`. A null or absent `agentWait`, or quiet output, is not a stall: keep waiting. (Orca already
+launches both Grok and Claude workers with auto-approve, so edit approvals should not block them.)
+If the worker's question means the design must change, revise the doc before answering; a
+foundation-level change → F-change (it starts by stopping the worker). While a worker is dispatched,
+Claude does not edit source files.
 
 ### C-4. Review
 Two parts, started together:
-- **Reviewer subagent** (default): the Agent tool, `subagent_type: "Plan"`, `run_in_background: true`,
-  a self-contained prompt — worktree path, design doc path, the changed files, the facts measured so
-  far, what to check hard (anything that writes to shared state first), and T4 as the output format;
-  plus "review only; no DB/MCP writes, no deploys, no integration tests that write". Measured
-  2026-09-23: 12.5 minutes, and it caught items Grok missed (and vice versa).
-- **Claude itself**: `git diff` + **re-run the definition-of-done tests yourself**, judged against
-  the design doc (T4).
+- **Reviewer subagent** (default): the Agent tool, `subagent_type: "team-reviewer"` (as in T6), a
+  self-contained prompt — worktree path, design doc path, the changed files, the facts measured so
+  far, what to check hard (anything that writes to shared state first), and T4 as the output format,
+  including its Spec check (every doc requirement missing or partial, behaviour the doc didn't ask
+  for, what looks implemented but wrong — each quoting the doc's line); plus "review only; no DB/MCP
+  writes, no deploys, no integration tests that write". Measured 2026-09-23: 12.5 minutes, and it
+  caught items Grok missed (and vice versa).
+- **Claude itself — evidence before claims**: the worker's `worker_done` is a claim, not evidence. Check
+  `git diff --stat` against the files it reported and the doc's scope, **re-run every
+  definition-of-done command yourself** and read the full output (exit code, failure count), and judge
+  the change against the design doc line by line (T4). Report only what that output shows.
 - `--reviewer grok|both`, or any chunk Sonnet implemented → also T6-style Grok code review on the
-  same request (non-blocking unless `grok`). Give it the diff as a file; it cannot run shell commands.
+  same request (non-blocking unless `grok`). It can run `git diff` itself (read-only commands only).
 
-**Over-engineering pass (only if the `ponytail:ponytail-review` skill is available).** After the
-correctness review, invoke it through the Skill tool on the same diff — never by typing
-`/ponytail-review` as a prompt, which flips ponytail's global mode flag for every session. It returns
-a delete-list only (`delete:` / `stdlib:` / `native:` / `yagni:` / `shrink:` per line). Judge each item
-like any finding: accept it only if it keeps the design's interfaces, the definition of done and the
-things ponytail itself never cuts (trust-boundary validation, data-loss handling, security,
+**Over-engineering pass (mandatory).** After the correctness review, invoke `ponytail:ponytail-review`
+through the Skill tool on the same diff (never as a typed prompt — Shared rules). If it fails, T5 says
+so; never report a failed pass as "lean already". It returns a delete-list only (`delete:` /
+`stdlib:` / `native:` / `yagni:` / `shrink:` per line). Judge each item like any finding: accept it
+only if it keeps the design's interfaces, the definition of done and the things ponytail itself never
+cuts (trust-boundary validation, data-loss handling, security,
 accessibility). An accepted item that changes an interface in the design doc → revise the doc first
 (show T3 again if it is substantial). Merge accepted items into the same "Apply review" spec; they
 count toward the same ≤3 rounds.
 
 Changes needed → reuse the worker that wrote the chunk, Grok or Sonnet (or, if Claude implemented,
-Claude applies them and the reviewer subagent re-checks via SendMessage):
+Claude applies them and the reviewer subagent re-checks via SendMessage). Decide the reuse before acking the old delivery:
 ```bash
-orca orchestration task-create --spec "Apply review: <per-item instructions, file:line>" --json
-orca orchestration worker-start --task <new_task_id> --terminal <assignee_handle> --json
+orca orchestration worker-show --dispatch <ctx_id> --json                  # the settled worker's handle
+orca orchestration worker-start --spec "Apply review: <per-item instructions, file:line>" --terminal <handle> --worktree current --json
+orca orchestration check --ack <deliveryId> --json                         # then wait on the NEW dispatch
 ```
 → C-3. At most 3 rounds. Still not approved after 3 → set the slice `blocked`, report the remaining
 items and both sides' reasoning to the user, and still do the C-5 cleanup.
 
 ### C-5. Wrap up
 ```bash
-orca orchestration worker-release --dispatch <ctx_id> --json     # for every completed dispatch
+orca orchestration worker-release --dispatch <ctx_id> --json     # every settled dispatch you are not reusing
 orca orchestration check --ack <deliveryId> --json
+orca orchestration worker-list --run <run_id> --terminal-state reclaimable --json   # must return none before you end
 orca worktree set --worktree active --comment "implemented + reviewed: <feature>" --json   # failure path: "blocked: <reason>"
 ```
 If there is a foundation and the review approved, set the slice to `done` in `slices.md`. Report with
 T5. Never stop/release a worker because of a timeout or idle state. If a handle returns
-`terminal_handle_stale`, re-acquire it with `orca terminal list --worktree active --json`; never send
-to both old and new handles.
-
----
-
-## G. Grok-driven feature mode (fallback)
-
-For when Grok Build is the session (no Orca, or the user prefers it). Grok is the driver. Claude is
-called headlessly several times (design draft once, design revision ≤2, code review ≤3 — all resuming
-the same session). Claude loads `CLAUDE.md` and its project memory, so it knows the repository's
-rules and history.
-
-**Entry `/team implement <design doc path>`**: the design was already reviewed and approved in Claude
-Code. Skip to G-2. There is no Claude session yet: the first time G-2 or G-3 needs Claude, start one
-with `new` (say the design at <path> was approved in Claude Code), keep that `sessionId`, and resume
-it afterwards.
-
-### Tools
-```bash
-bash ~/.claude/skills/team/claude-turn.sh <design|review> <prompt-file> [session-id|new]
-# → {"sessionId":"…","text":"…","cost":0.3,"isError":false,"subtype":"success"}
-```
-- `design`: only `docs/design/**` is writable, except `docs/design/foundation/` (foundation work is
-  Claude Code's job) — other writes are refused by the harness. Bash runs only what Claude Code
-  classifies as read-only (git log/diff/show, grep, find, ls…); git branch/stash/commit and file
-  writes through the shell are refused. Web search is refused in this headless mode (context7 worked
-  in a real run); anything refused ends up as `not verified` (T1).
-- `review`: Read + Bash (to run tests). Write/Edit and mutating Bash (git commit/checkout/reset,
-  rm, mv, sed -i, …) are blocked.
-- Allow rules in the user's own Claude Code settings still apply in both modes.
-- The script `cd`s to the repository root itself, so it works from any directory.
-- Always pass prompts as files (avoids shell quoting), in `/tmp/team/<slug>/`.
-- If the result's `subtype` is `error_max_turns` (the script exits 1 then, but the line still has
-  `subtype` and `sessionId`), or `text` lacks the expected marker (`DESIGN_DOC:` / `## Verdict:`),
-  resume **the same sessionId** once with "continue and finish". Never start a new session for that.
-- Roughly 0.3–2 USD per call. **A large design takes 20–40 minutes.** If Grok's Task/background tool
-  has a kill deadline, disable it or set it generously (60 min+). Killing at 25 minutes throws away
-  all exploration done so far.
-- The script prints the new session id **before** starting, to stderr and to
-  `last-claude-session` next to the prompt file (`/tmp/team/<slug>/last-claude-session`). If the
-  process is killed or times out, do not start over — resume that id and say "write the design doc
-  now from what you have already learned". The exploration context is still there.
-
-### G-1. Design request → `team-design.md`
-```
-Role: senior architect for this repository. Repository: <cwd>
-Task request: <the user's request, verbatim>
-Job: read the code and write a design document at docs/design/<YYYYMMDD>-<slug>.md. Do not modify source files.
-The document must contain: <paste the T1 list verbatim>
-Method: <paste the T1 method paragraph verbatim>
-Write in the user's language. Print "DESIGN_DOC: <absolute path>" as the last line.
-```
-```bash
-bash ~/.claude/skills/team/claude-turn.sh design /tmp/team/<slug>/team-design.md new   # keep the sessionId
-```
-Read the `DESIGN_DOC:` path from `text`. **Keep the sessionId** — every later design revision and
-code review resumes this session.
-
-### G-1b. Adversarial design review (Grok itself) — mandatory before implementing
-Review the design doc with the T2 checklist and write `/tmp/team/<slug>/design-review-<N>.md` in the
-T2 format. If Critical, Missing and Ambiguous are **all empty**, skip G-1c and go to G-1d. Otherwise G-1c.
-
-### G-1c. Claude rebuts/accepts + revises the doc (resume the design session, `design` mode)
-```
-Grok has adversarially reviewed your design. Review file: /tmp/team/<slug>/design-review-<N>.md
-Judge every item by checking the code directly:
-- Correct → accept and Edit the design doc
-- Wrong → rebut with evidence (file:line). Leave the doc unchanged
-- Needs checking → actually check (grep / read the file) before judging. No guessing
-For Ambiguous items, write the answer into the doc (so the implementer never has to ask again).
-Output: a per-item list of "accepted (doc §x changed) | rebutted (evidence)". Last line "DESIGN_DOC: <path>".
-```
-```bash
-bash ~/.claude/skills/team/claude-turn.sh design /tmp/team/<slug>/team-design-fix-<N>.md <sessionId>
-```
-Grok re-reads the revised doc and Claude's rebuttals. Accept rebuttals that are backed by evidence.
-**If Critical items remain and you cannot accept Claude's rebuttal**, run G-1b once more (design
-review total ≤2). If Critical items are still contested after 2 rounds → do not implement; set the
-slice `blocked` (if there is a foundation), report both sides' evidence to the user and stop. No
-Critical items left (Missing/Ambiguous now reflected in the doc) → G-1d.
-
-### G-1d. Approval gate
-T3. Change requests go to Claude: put them in `team-design-fix-user.md` and resume the design session
-(`design` mode) → doc revised → show the gate again.
-
-### G-2. Implementation (Grok itself)
-Follow the design doc's scope, signatures and order exactly. Never modify files outside the scope.
-If you conclude the design must be deviated from, ask Claude before implementing that part (the
-Claude session, `design` mode — so a changed decision lands in the doc; Claude can't touch source
-anyway). Do not implement that part until you have the answer. If the answer is that the change
-contradicts the foundation or needs a new expensive decision → F-change (the "In G" paragraph). Run
-the definition-of-done tests yourself and make them pass. Do not commit.
-
-### G-3. Code review request → `team-review.md` (resume the Claude session)
-```
-Role: reviewer. Check whether the implementation matches the design doc: <path>.
-Inspect the change with git diff and git status, and run the definition-of-done tests yourself (do not modify files).
-Check: omissions/additions vs the design, scope violations, test results, regression risk, existing code conventions (minimal change).
-Format: <paste T4 verbatim>
-```
-```bash
-bash ~/.claude/skills/team/claude-turn.sh review /tmp/team/<slug>/team-review.md <sessionId>
-```
-- `REQUEST_CHANGES` → apply the required changes → repeat G-3 (same session; keep it short:
-  "Fixed: … please re-review"). At most 3 rounds.
-- Still not approved after 3 → set the slice `blocked` (if there is a foundation) and report the
-  remaining items and both sides' reasoning to the user.
-- `APPROVE` → G-4.
-
-### G-4. Report
-T5. If there is a foundation, set the slice to `done` in `slices.md`.
+`terminal_handle_stale`, re-acquire it with `orca orchestration worker-show --dispatch <ctx_id>
+--json`; never send to both old and new handles.

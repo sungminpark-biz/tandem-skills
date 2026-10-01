@@ -4,7 +4,9 @@
 #   ./install.sh          copy  (default)
 #   ./install.sh --link   symlink to this checkout so `git pull` updates the skills in place
 #
-# An existing ~/.claude/skills/team or /debate is moved to ~/.claude/skills-backup/<name>.<timestamp>, never deleted.
+# Also installs the team-reviewer subagent into ~/.claude/agents/.
+# An existing ~/.claude/skills/team or /debate is moved to ~/.claude/skills-backup/<name>.<timestamp>, never deleted
+# (an existing team-reviewer.md likewise goes to ~/.claude/agents-backup/).
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -30,7 +32,26 @@ for skill in team debate; do
   echo "installed $skill -> $target"
 done
 
+# The team skill's read-only reviewer subagent (resumable, unlike the built-in Plan agent).
+AGENTS="${CLAUDE_AGENTS_DIR:-$HOME/.claude/agents}"
+agent="$AGENTS/team-reviewer.md"
+mkdir -p "$AGENTS"
+if [[ -e "$agent" || -L "$agent" ]]; then
+  mkdir -p "$AGENTS-backup"
+  backup="$AGENTS-backup/team-reviewer.md.$(date +%Y%m%d%H%M%S)"
+  mv "$agent" "$backup"
+  echo "existing $agent moved to $backup"
+fi
+if [[ "$MODE" == "--link" ]]; then
+  ln -s "$HERE/agents/team-reviewer.md" "$agent"
+else
+  cp "$HERE/agents/team-reviewer.md" "$agent"
+fi
+echo "installed team-reviewer agent -> $agent"
+
 echo
 echo "Check:"
-echo "  claude:  type /team or /debate in a Claude Code session"
+echo "  claude:  type /team or /debate in a Claude Code session (team-reviewer shows up in a new session)"
 echo "  grok:    grok inspect   # should list 'team' and 'debate' under Skills"
+echo "  ponytail (required by /team): /plugin install ponytail@ponytail in Claude Code;"
+echo "           grok plugin install DietrichGebert/ponytail --trust && grok plugin enable ponytail"

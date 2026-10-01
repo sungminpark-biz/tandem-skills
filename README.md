@@ -9,12 +9,12 @@ Like a tandem bicycle: one rider steers, the other pedals. Open Claude Code in y
 
 ```
 Claude drafts the design
-  → Grok adversarially reviews it (reads the repo, tries to break the design)
+  → a Claude reviewer and Grok adversarially review it in parallel (read the repo, try to break it)
   → Claude rebuts or accepts each point with evidence, revises the doc   (≤2 rounds)
   → ★ you approve the design ★
   → Grok implements (a supervised worker in its own terminal tab)
      UI / front-end chunks go to a Claude Sonnet worker instead
-  → Claude reviews the diff, re-runs the tests                            (≤3 rounds)
+  → Claude reviews the diff, re-runs the tests, runs ponytail-review     (≤3 rounds)
   → the same worker fixes → report
 ```
 
@@ -54,19 +54,33 @@ Both skills work in either direction because **Grok Build reads `~/.claude/skill
 - [Claude Code](https://code.claude.com) ≥ 2.1 (`claude` on PATH, logged in)
 - [Grok Build](https://x.ai/cli) ≥ 1.0 (`grok` on PATH, logged in)
 - `jq`, `git`, and `uuidgen` (or python3)
+- [ponytail](https://github.com/DietrichGebert/ponytail) in **both** Claude Code and Grok Build —
+  `/team` refuses to start without it (see Install)
+- Recommended: the [context7](https://github.com/upstash/context7) plugin in Claude Code, for the
+  design's currency check (`/plugin install context7@claude-plugins-official`, then log in once with `/mcp`)
 - [Orca](https://github.com/stablyai/orca) for the default feature path, where Grok runs as a
   supervised Orca worker with a visible terminal tab. Foundation mode and the Grok-driven fallback
   work without it.
 
-Tested with Claude Code 2.1.273–2.1.286 (Claude Opus 5, Sonnet 5.5 workers), Grok Build 1.0.30–1.0.46
-and Orca 1.4.204 on macOS.
+Tested with Claude Code 2.1.273–2.1.286 (Claude Opus 5 / 5.5, Sonnet 5.5 workers), Grok Build
+1.0.30–1.0.46 and Orca 1.4.204–1.4.215 on macOS.
 
 ## Install
 
 ```bash
 git clone https://github.com/sungminpark-biz/tandem-skills.git
-cd tandem-skills && ./install.sh          # copies skills/ into ~/.claude/skills/
+cd tandem-skills && ./install.sh          # copies skills/ into ~/.claude/skills/ and the
+                                          # team-reviewer subagent into ~/.claude/agents/
 # or: ./install.sh --link          # symlink, so `git pull` updates in place
+```
+
+ponytail (required):
+```bash
+# Claude Code — two separate prompts
+/plugin marketplace add DietrichGebert/ponytail
+/plugin install ponytail@ponytail
+# Grok Build (plugins stay off until enabled)
+grok plugin install DietrichGebert/ponytail --trust && grok plugin enable ponytail
 ```
 
 Check:
@@ -87,12 +101,16 @@ Inside an Orca worktree, in Claude Code:
 
 Claude will:
 1. write `docs/design/<date>-<slug>.md` (scope, signatures, order, definition of done, what is deliberately not built)
-2. get Grok's adversarial review via `grok-turn.sh` (critical / missing / ambiguous, with evidence), check each item against the code, and revise the doc or rebut
+2. get an adversarial review from a read-only Claude reviewer subagent (`team-reviewer`) and Grok
+   (`grok-turn.sh`) in parallel (critical / missing / ambiguous, with evidence), check each item
+   against the code, and revise the doc or rebut
 3. **stop and show you a summary — nothing is implemented until you say "approve"**
 4. spawn the implementer as an Orca orchestration worker and answer its questions: Grok
-   (`worker-start --agent grok`), or for UI work a Claude Sonnet worker
-   (`--agent claude --model sonnet`)
-5. review the diff, re-run the tests, and dispatch fixes to the same worker until approved (max 3 rounds)
+   (`worker-start --spec … --agent grok`), or for UI work a Claude Sonnet worker
+   (`--agent claude --model sonnet`). Either one writes the code with ponytail inside the design's scope
+5. review the diff (a spec check: missing, unrequested, implemented-but-wrong, each quoting the
+   design), re-run every test itself rather than trusting the worker's report, run `ponytail-review`,
+   and dispatch fixes to the same worker until approved (max 3 rounds)
 6. report: what the review changed, files touched, tests, cost
 
 No Orca? Claude still does steps 1–3, then tells you to run `/team implement <design doc>` in Grok Build
@@ -107,11 +125,11 @@ same task → question → `worker_done` → fix loop as Grok, in a tab you can 
 is reviewed by the same model family, Grok also reviews it (non-blocking). `sonnet` is an alias, so
 the worker follows the newest Sonnet.
 
-Optional: with the [ponytail](https://github.com/DietrichGebert/ponytail) plugin installed, step 5 also
-runs its `ponytail-review` on the diff — an over-engineering delete-list that Claude filters before
-passing it to the worker. Keep ponytail's always-on mode off (`~/.config/ponytail/config.json`:
-`{"defaultMode": "off"}`); the team skill never invokes the main `ponytail` skill. Grok Build also
-lists Claude Code plugin skills, so the worker spec tells the implementer not to invoke it either.
+ponytail is part of the workflow: its ladder (needed at all? → reuse → stdlib → native → one line)
+shapes what the design proposes and how the code is written, and its `ponytail-review` delete-list
+runs in every code review, filtered by Claude. Its always-on mode can stay on; where it clashes with
+the team process, the team rules win — every design-doc section is written in full, approval gates are
+never skipped, and the implementer asks before cutting anything the design specifies.
 
 ### Foundation (a service from scratch)
 
@@ -169,9 +187,9 @@ The scripts don't rely on the model promising to behave:
 
 | Mode | Permission | Effect |
 |---|---|---|
-| `claude-turn.sh design` | `--permission-mode dontAsk` + `Write(docs/design/**)`, `Edit(docs/design/**)` (except `docs/design/foundation/**`), no Bash allow rules, mutating git/shell commands denied | Claude can write the design doc and nothing else. Bash runs only what Claude Code classifies as read-only — `git stash`, `git branch`, `touch`, `>` redirects are refused |
+| `claude-turn.sh design` | `--permission-mode dontAsk` + `Write(docs/design/**)`, `Edit(docs/design/**)` (except `docs/design/foundation/**`), WebSearch/WebFetch/context7, no Bash allow rules, mutating git/shell commands denied | Claude can write the design doc and nothing else. Bash runs only what Claude Code classifies as read-only — `git stash`, `git branch`, `touch`, `>` redirects are refused |
 | `claude-turn.sh review` | `dontAsk` + `Bash` allowed, `Write`/`Edit` and `git commit/checkout/reset`, `rm`, `mv`, `sed -i`… denied | Claude can run the tests but not change files |
-| `grok-turn.sh` | `--permission-mode plan` | Grok is read-only |
+| `grok-turn.sh` | `--permission-mode dontAsk --sandbox read-only --no-plan`, edit/write/question tools removed | Grok reads files and runs read-only commands (`git diff`, `grep`…). It cannot edit; a shell write attempt cancels its turn, and the OS sandbox blocks writes to the project anyway |
 | Approval gates | skill rule | The driver must end its turn and wait after the design (and the foundation) is final |
 
 Other details that came out of real runs:
@@ -194,17 +212,25 @@ A Grok adversarial review turn costs roughly $0.25–0.4.
 - Approval gates are a model-compliance property, not a hard block.
 - The default feature path needs Orca. Foundation mode and the Grok-driven fallback work anywhere.
 - Foundation mode is new and has not had a full run yet — watch the first one.
-- In Claude-driven runs a Grok worker can stall on its own edit-approval prompt; the skill tells Claude how to release it, but watch the tab.
+- In Claude-driven runs a worker can park on a prompt only a human can answer (plan-mode entry,
+  a question card). The skill detects it through `worker-show`'s `agentWait` and answers it, but watch
+  the tab.
+- The headless Grok reviewer's turn is cancelled if it tries to write; the skill resumes it once with
+  "read-only commands only".
 - A Claude (Sonnet) worker started in a folder Claude Code hasn't trusted yet exits at the trust prompt, which defaults to "No, exit". Workers in the driver's own worktree are fine; for other placements, open `claude` there once first.
 
 ## Layout
 
 ```
 skills/
-  team/SKILL.md          the workflow (0: mode and path, F: foundation, C: Claude-driven, G: Grok-driven)
+  team/SKILL.md          the workflow (0: mode and path, shared rules and templates, C: Claude-driven)
+  team/foundation.md     F: foundation mode   (read only when that path is taken)
+  team/grok-driven.md    G: Grok-driven path  (read only when that path is taken)
   team/claude-turn.sh    headless Claude: design | review   (Grok-driven path)
   debate/SKILL.md        the debate loop
   debate/grok-turn.sh    headless Grok: read-only critic     (every adversarial review Claude drives)
+agents/
+  team-reviewer.md       read-only, resumable Claude reviewer subagent for /team
 install.sh
 ```
 
