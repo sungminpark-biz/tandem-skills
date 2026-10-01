@@ -176,7 +176,7 @@ Grok이 Claude를 헤드리스로 불러(`claude-turn.sh`; `docs/design/**`만 �
 |---|---|---|
 | `claude-turn.sh design` | `--permission-mode dontAsk` + `Write(docs/design/**)`, `Edit(docs/design/**)` (`docs/design/foundation/**` 제외), WebSearch/WebFetch/context7, Bash 허용 규칙 없음, 변경 git/셸 명령 거부 | 설계문서만 쓸 수 있음. Bash는 Claude Code가 읽기 전용으로 판정한 것만 실행 — `git stash`, `git branch`, `touch`, `>` 리다이렉트는 거부 |
 | `claude-turn.sh review` | `dontAsk` + `Bash` 허용, `Write`/`Edit`와 `git commit/checkout/reset`, `rm`, `mv`, `sed -i`… 거부 | 테스트는 돌리되 파일은 못 바꿈 |
-| `grok-turn.sh` | `--permission-mode dontAsk --sandbox read-only --no-plan`, 편집/쓰기/질문 도구 제거 | Grok은 파일을 읽고 읽기 전용 명령(`git diff`, `grep`…)을 실행. 편집은 불가, 셸로 쓰기를 시도하면 턴이 취소되고, OS sandbox가 프로젝트 쓰기를 어차피 막음 |
+| `grok-turn.sh` | `--permission-mode dontAsk --sandbox read-only --no-plan`, 편집/쓰기/질문 도구 제거, 읽기 명령 허용 목록(`find`, `sed -n`, `jq`, `diff`, `WebFetch`…; `find -exec/-delete`는 거부), 같은 목록을 `--rules`로 전달 | Grok은 파일을 읽고 읽기 전용 명령과 문서 조회를 실행. 편집은 불가, OS sandbox가 프로젝트 쓰기를 어차피 막음 |
 | 승인 게이트 | 스킬 규칙 | 설계(그리고 기초 설계) 확정 후 드라이버는 턴을 끝내고 기다려야 함 |
 
 실전에서 나온 디테일:
@@ -201,7 +201,7 @@ Grok 적대 검토 한 턴은 약 $0.25~0.4.
 - 기초 설계 모드는 새로 추가되어 아직 전체 실행 전 — 첫 실행을 지켜보세요.
 - Claude 주도 실행에서 워커가 사람만 답할 수 있는 프롬프트(plan 모드 진입, 질문 카드)에서 멈출 수 있음. 스킬이
   `worker-show`의 `agentWait`로 감지해 답하지만 탭을 지켜보세요.
-- 헤드리스 Grok 리뷰어는 쓰기를 시도하면 턴이 취소됨. 스킬이 "읽기 전용 명령만"이라고 한 번 재개함.
+- 헤드리스 Grok은 읽기 전용 목록 밖의 명령(`git -c …`, 테스트 실행, 쓰기)을 만나면 거부가 아니라 턴 전체를 취소함. 스크립트가 흔히 쓰는 읽기 명령을 미리 허용하고 목록을 Grok에게 알려주며, 그래도 취소되면 스킬이 한 번 이어서 돌림.
 - Claude Code가 아직 신뢰하지 않은 폴더에서 Claude(Sonnet) 워커를 띄우면 폴더 신뢰 확인 창에서 종료됨 (기본 선택이 "No, exit"). 드라이버가 도는 워크트리에서는 문제없고, 다른 위치라면 먼저 그곳에서 `claude`를 한 번 열어 수락하세요.
 
 ## 구조

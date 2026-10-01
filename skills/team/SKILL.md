@@ -285,10 +285,9 @@ the checklist, and the T2 output format. Then, in the same message:
   ```bash
   bash ~/.claude/skills/debate/grok-turn.sh /tmp/team/<slug>/<name>-req.md new 20
   ```
-  Grok runs headless read-only (verified 2026-10-01): read-only shell commands (git diff/log/show,
-  grep, rg, cat, ls) work and its edit tools are removed, but **any write attempt cancels its turn**
-  (`stopReason: "cancelled"`). The request file must say: "Read-only commands only; never write files
-  or redirect output."
+  Grok runs headless read-only: its edit tools are removed, and `grok-turn.sh` pre-approves the read
+  commands reviews use and tells Grok the list. **A command outside it — `git -c …`, a test run, any
+  write — cancels the whole turn** (`stopReason: "cancelled"`, verified 2026-10-01); handle it in step 3.
 
 **2. Wait for the Claude reviewer only.** When it returns: check every item against the code
 yourself, accept (edit the doc) or rebut (with evidence), then go on (to the gate, or round 2).
@@ -302,8 +301,8 @@ yourself, accept (edit the doc) or rebut (with evidence), then go on (to the gat
   else is folded into the code review.
 - Grok's handling: `"maxTurns": true` → resume the same `sessionId` with "Stop exploring.
   Write the review now in the required format from what you have." (max-turns 10). `stopReason:
-  "cancelled"` or `text` without `## Verdict:` → resume once with "Read-only commands only. Answer
-  in the required format." Killed → the id is in `/tmp/team/<slug>/last-grok-session`; resume it.
+  "cancelled"` or `text` without `## Verdict:` → resume once with "Use only the allowed read-only
+  commands. Answer in the required format." Killed → the id is in `/tmp/team/<slug>/last-grok-session`; resume it.
   Still nothing → Grok's review **failed**; say so at the gate (never read it as "no Critical items").
 
 **4. Round 2** (≤2 total) goes only to the reviewer whose Critical you rebutted and who needs to see

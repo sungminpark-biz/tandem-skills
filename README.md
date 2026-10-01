@@ -189,7 +189,7 @@ The scripts don't rely on the model promising to behave:
 |---|---|---|
 | `claude-turn.sh design` | `--permission-mode dontAsk` + `Write(docs/design/**)`, `Edit(docs/design/**)` (except `docs/design/foundation/**`), WebSearch/WebFetch/context7, no Bash allow rules, mutating git/shell commands denied | Claude can write the design doc and nothing else. Bash runs only what Claude Code classifies as read-only — `git stash`, `git branch`, `touch`, `>` redirects are refused |
 | `claude-turn.sh review` | `dontAsk` + `Bash` allowed, `Write`/`Edit` and `git commit/checkout/reset`, `rm`, `mv`, `sed -i`… denied | Claude can run the tests but not change files |
-| `grok-turn.sh` | `--permission-mode dontAsk --sandbox read-only --no-plan`, edit/write/question tools removed | Grok reads files and runs read-only commands (`git diff`, `grep`…). It cannot edit; a shell write attempt cancels its turn, and the OS sandbox blocks writes to the project anyway |
+| `grok-turn.sh` | `--permission-mode dontAsk --sandbox read-only --no-plan`, edit/write/question tools removed, an allow list of read commands (`find`, `sed -n`, `jq`, `diff`, `WebFetch`…; `find -exec/-delete` denied), the list repeated in `--rules` | Grok reads files, runs read-only commands and fetches docs. It cannot edit, and the OS sandbox blocks writes to the project anyway |
 | Approval gates | skill rule | The driver must end its turn and wait after the design (and the foundation) is final |
 
 Other details that came out of real runs:
@@ -215,8 +215,9 @@ A Grok adversarial review turn costs roughly $0.25–0.4.
 - In Claude-driven runs a worker can park on a prompt only a human can answer (plan-mode entry,
   a question card). The skill detects it through `worker-show`'s `agentWait` and answers it, but watch
   the tab.
-- The headless Grok reviewer's turn is cancelled if it tries to write; the skill resumes it once with
-  "read-only commands only".
+- Headless Grok cancels its whole turn on any command outside its read-only list (`git -c …`, a test
+  run, a write) instead of just refusing it. The script pre-approves the common read commands and lists
+  them for Grok; when a turn is still cancelled, the skill resumes it once.
 - A Claude (Sonnet) worker started in a folder Claude Code hasn't trusted yet exits at the trust prompt, which defaults to "No, exit". Workers in the driver's own worktree are fine; for other placements, open `claude` there once first.
 
 ## Layout

@@ -15,13 +15,19 @@
 #   Never start a new session for that.
 # A new session's id is chosen BEFORE starting and written to stderr and to
 #   <prompt-file dir>/last-grok-session, so a killed call can be resumed with its context.
-# Grok runs read-only (verified 2026-10-01, grok 1.0.46): read-only shell commands (git diff/log/show,
-# grep, rg, cat, ls…) run; its edit/write/question tools are removed so it cannot try them; any write
-# attempt through the shell still CANCELS the turn (stopReason "cancelled"), so prompts must say
-# "read-only commands only, no redirects". --sandbox read-only blocks writes to the project at the OS
-# level (it allows /tmp, ~/.grok); --no-plan keeps it out of plan mode, whose approval prompt cannot be
-# answered headlessly. Reasoning effort is not passed: it comes from ~/.grok/config.toml (xhigh).
-# Editing is Claude's job.
+# Grok runs read-only (verified 2026-10-01, grok 1.0.46). Headless, any command that would need
+# approval CANCELS the whole turn (stopReason "cancelled") instead of being refused — including harmless
+# reads outside Grok's built-in read-only list (find, git -c …, web_fetch). So:
+#   - READ_ONLY_ALLOW pre-approves the read commands reviews actually use. It repeats Grok's built-in
+#     read-only commands too: allow rules only cover a chained command when EVERY segment matches one,
+#     so `git log; file x` cancelled while each half alone ran. Deny rules refuse find -exec/-delete
+#     gracefully (a denial is reported back, it does not cancel). awk/xargs are left out on purpose:
+#     they can run other commands. The sandbox, not this list, is what stops writes.
+#   - `git -c …` cannot be allowed by any rule, so RULES (appended to Grok's system prompt every call)
+#     lists the allowed commands and forbids git -c.
+#   - edit/write/question tools are removed; --sandbox read-only blocks writes to the project at the OS
+#     level (it still allows /tmp and ~/.grok); --no-plan keeps it out of plan mode.
+# Reasoning effort is not passed: it comes from ~/.grok/config.toml (xhigh). Editing is Claude's job.
 # Always runs from the repository root so Grok's exploration is anchored the same way regardless of
 # where the caller is.
 set -euo pipefail
@@ -39,8 +45,23 @@ PROMPT_FILE="$(cd "$(dirname "$PROMPT_FILE")" && pwd)/$(basename "$PROMPT_FILE")
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo '{"error":"not inside a git repository"}'; exit 2; }
 cd "$REPO_ROOT"
 
+READ_ONLY_ALLOW=()
+for cmd in "git status" "git log" "git diff" "git show" "git ls-files" "git rev-parse" "git check-ignore" \
+           "git blame" "ls" "cat" "head" "tail" "wc" "sort" "uniq" "cut" "echo" "grep" "rg" "pwd" \
+           "find" "sed -n" "jq" "diff" "stat" "tree" "file" "nl" "du" "which" "realpath"; do
+  READ_ONLY_ALLOW+=(--allow "Bash($cmd:*)")
+done
+READ_ONLY_ALLOW+=(--allow WebFetch
+                  --deny 'Bash(find * -exec*)' --deny 'Bash(find * -execdir*)' --deny 'Bash(find * -ok*)'
+                  --deny 'Bash(find * -delete*)')
+RULES="You are a read-only reviewer running headless. A shell command outside this list cancels your whole
+turn: git status/log/diff/show/blame/ls-files/rev-parse/check-ignore (plain git only, never git -c),
+ls, cat, head, tail, wc, sort, uniq, cut, echo, pwd, grep, rg, find (no -exec or -delete), sed -n, jq, diff,
+stat, tree, file, nl, du, which, realpath. Never write or redirect output into files, never run tests,
+builds, installers or network commands; use web_search and web_fetch for the web."
 args=(--output-format json --permission-mode dontAsk --sandbox read-only --no-plan
       --disallowed-tools search_replace,write,ask_user_question
+      "${READ_ONLY_ALLOW[@]}" --rules "$RULES"
       --max-turns "$MAX_TURNS" --prompt-file "$PROMPT_FILE")
 if [[ "$SESSION" != "new" && -n "$SESSION" ]]; then
   args=(--resume "$SESSION" "${args[@]}")
