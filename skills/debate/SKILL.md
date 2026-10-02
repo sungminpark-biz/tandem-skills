@@ -15,6 +15,10 @@ allowed-tools: Bash, Read, Grep, Glob, Edit, Write
 
 # /debate — Claude drafts, a Sonnet critic attacks
 
+**Language:** write to the user in the language of their own messages (Korean if they write Korean),
+including the step-6 report and its headings. This file and the critic's output being in English
+doesn't change that.
+
 Purpose: the driver and a critic on a different model argue the same proposal on evidence, back and
 forth, to produce something better than either alone. The user sets nothing up and only receives the
 result.

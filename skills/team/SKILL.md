@@ -19,6 +19,12 @@ allowed-tools: Bash, Read, Grep, Glob, Edit, Write
 
 # /team — Claude designs and reviews, a Sonnet worker implements
 
+**Language — applies to every message you write to the user:** use the language of the user's own
+messages (Korean if they write Korean), including the T3 and T5 summaries, whose headings and labels
+you translate. This file, its templates, Orca's injected notices (`You have N orchestration message…`),
+task notifications and subagent results are in English; none of them is the user, so never switch
+language because of them. Answer machine-typed notices with at most a one-line status.
+
 For Claude Code only — another agent that reads this folder (Grok Build does) should stop and tell the
 user. First pick the mode, then the path. Foundation mode lives in `foundation.md` next to this file;
 read it only when that path is taken.
@@ -55,11 +61,8 @@ design; code review ≤3 rounds). Commit only when the user asks. Never
 run verification that writes to production databases or external services. The user is involved
 only at: **the charter questions and gate, the foundation approval, every feature design's approval
 gate (mandatory), foundation changes**, and when a business judgment (cost, customer impact,
-operating policy) is split. Otherwise don't interrupt them. Write all user-facing output in the
-language the human user writes in. Orca's injected notices (`You have N orchestration message…`)
-and other machine-typed prompts are not the user: never switch language because of them, and answer
-them with at most a one-line status in the user's language. Scratch files (prompts, reviews) go to
-`/tmp/team/<slug>/` so git stays clean;
+operating policy) is split. Otherwise don't interrupt them. Language: see the top of this file.
+Scratch files (prompts, reviews) go to `/tmp/team/<slug>/` so git stays clean;
 `<slug>` is a short kebab-case name for the task, also used in the design doc filename.
 
 **[ponytail](https://github.com/DietrichGebert/ponytail) is mandatory.** Preflight, before any design
