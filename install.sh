@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs the tandem skills into ~/.claude/skills/ (read by both Claude Code and Grok Build).
+# Installs the tandem skills into ~/.claude/skills/.
 #
 #   ./install.sh          copy  (default)
 #   ./install.sh --link   symlink to this checkout so `git pull` updates the skills in place
@@ -28,7 +28,6 @@ for skill in team debate; do
   else
     cp -R "$HERE/skills/$skill" "$target"
   fi
-  chmod +x "$target"/*.sh
   echo "installed $skill -> $target"
 done
 
@@ -52,6 +51,5 @@ echo "installed team-reviewer agent -> $agent"
 echo
 echo "Check:"
 echo "  claude:  type /team or /debate in a Claude Code session (team-reviewer shows up in a new session)"
-echo "  grok:    grok inspect   # should list 'team' and 'debate' under Skills"
-echo "  ponytail (required by /team): /plugin install ponytail@ponytail in Claude Code;"
-echo "           grok plugin install DietrichGebert/ponytail --trust && grok plugin enable ponytail"
+echo "  ponytail (required by /team): /plugin marketplace add DietrichGebert/ponytail,"
+echo "           then /plugin install ponytail@ponytail in Claude Code"

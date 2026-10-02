@@ -5,8 +5,8 @@ and the Shared rules are in `~/.claude/skills/team/SKILL.md`, which is already l
 
 ## F. Foundation mode
 
-For a service designed from scratch, or a re-founding. **Claude only.** Orca is not required (Grok is
-called headlessly, read-only). Output lives in `docs/design/foundation/` and is **canonical**: feature
+For a service designed from scratch, or a re-founding. Orca is not required (the reviewers are
+subagents). Output lives in `docs/design/foundation/` and is **canonical**: feature
 design docs cite it and never restate or override it. It changes only through F-change.
 ```
 docs/design/foundation/
@@ -37,7 +37,7 @@ Sections, 1–2 pages in total:
 ```
 Draft from the request, the existing docs and F-0. **Mark every unknown as a question — don't guess
 business decisions.** Ask in batches of up to 4 (AskUserQuestion when available: concrete options,
-the recommended one first). Grok does not review the charter — these are product calls, not code.
+the recommended one first). The reviewers do not review the charter — these are product calls, not code.
 **Gate: show the charter summary (one line, caps, non-goals, open questions left) and end your turn.**
 Go on to F-2 only on "OK" / "approve" / "go"; anything else → revise and show it again. Open questions
 that a decision depends on must be answered before that decision is written.
@@ -87,7 +87,7 @@ every decision record and `slices.md`, this checklist, and the T2 output format.
 - Does S1 (or S1a, S1b…) really touch every decision end to end? Is any slice too big for one run?
 
 Check every item against the code and docs **yourself**, then accept (edit the doc) or rebut (with
-evidence). ≤2 rounds (T6 step 4). Items still contested after 2 rounds go to the user at F-5 with
+evidence). ≤2 rounds (T6 step 3). Items still contested after 2 rounds go to the user at F-5 with
 both sides' evidence.
 
 ### F-5. Foundation approval gate
@@ -96,20 +96,20 @@ both sides' evidence.
 - Charter: docs/design/foundation/charter.md — one line: …
 - Decisions (N): NNN <title> — one line each (+ what the review changed)
 - Slices: S1 <walking skeleton> / S2 … / S3 … (+N more, one line each)
-- Adversarial review: Claude reviewer raised N / Grok raised M → Claude accepted N / rebutted N
+- Adversarial review: reviewer raised N / risk reviewer raised M → Claude accepted N / rebutted N
   (or: a review failed or is still running — why)
 - Contested (your call): …
 - Open questions: …
 Reply "approve" to accept the foundation and start S1. Otherwise tell me what to change.
 ```
 End your turn and wait. Approved ("approve" / "go" / "OK") → set the decision records to `accepted`, then start S1 at **C-1**:
-Claude writes S1's design, runs its review and its own T3 gate. (Without Orca, the hand-off to Grok
-happens after that gate, as in section 0 — never hand `slices.md` to Grok as a design.)
+Claude writes S1's design, runs its review and its own T3 gate. (Without Orca, the hand-off happens
+after that gate, as in section 0 — never hand `slices.md` to an implementer as a design.)
 
 ### F-change. Changing the foundation
 Entered two ways: a slice's design, implementation or review shows that a charter line or an accepted
 decision is wrong (or needs a new expensive-to-reverse decision), or the user asks for a change
-directly (`/team foundation change: …`, possibly handed over from G).
+directly (`/team foundation change: …`).
 1. **Stop the slice, if one is in progress.** In C with a worker running: reply to its pending
    question, or `orca orchestration send --to dispatch:<ctx_id> --subject "Stop" --body "<msg>" --json`
    (workers read follow-ups at their checkpoints), with "Stop: the design is changing. Don't edit

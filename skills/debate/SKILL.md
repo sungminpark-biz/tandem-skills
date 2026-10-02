@@ -1,50 +1,40 @@
 ---
 name: debate
 description: >-
-  Claude <-> Grok cross-model debate loop. Claude drafts (a design, plan or implementation), calls
-  Grok Build headlessly (read-only) for criticism and alternatives, rebuts or accepts each point with
-  evidence, repeats, then reports the consensus to the user. Use immediately when the user says
-  "/debate", "discuss with grok", "have the AIs debate", "second model opinion", "cross-review",
-  "discuss and get a better result". Also use unprompted for: non-trivial design/architecture
-  decisions, changes affecting payments/DB/customers, contested trade-offs, and a final review after
-  an implementation. Not for simple questions, typo fixes, or obvious one-line changes.
+  Claude debate loop with a critic on a different model. Claude drafts (a design, plan or
+  implementation), a read-only Claude Sonnet critic subagent attacks it with evidence and
+  alternatives, Claude rebuts or accepts each point with evidence, repeats, then reports the
+  consensus to the user. Use immediately when the user says "/debate", "have the AIs debate",
+  "second opinion", "cross-review", "discuss and get a better result". Also use unprompted for:
+  non-trivial design/architecture decisions, changes affecting payments/DB/customers, contested
+  trade-offs, and a final review after an implementation. Not for simple questions, typo fixes, or
+  obvious one-line changes.
 argument-hint: "[topic — empty means the work currently in progress]"
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
 ---
 
-# /debate — Claude ↔ Grok cross-model debate
+# /debate — Claude drafts, a Sonnet critic attacks
 
-Purpose: two models argue the same proposal on evidence, back and forth, to produce something better
-than either alone. The user sets nothing up and only receives the result.
+Purpose: the driver and a critic on a different model argue the same proposal on evidence, back and
+forth, to produce something better than either alone. The user sets nothing up and only receives the
+result.
 
 ## Roles
 
-| | Claude (me) | Grok |
+| | Claude (me, the driver) | Critic |
 |---|---|---|
-| Rights | edit, run, final synthesis | **read-only** (no edit tools, read-only sandbox; read-only shell commands such as git diff/grep only) |
-| Role | driver: drafts, verifies, rebuts/accepts, applies consensus | critical co-designer: reads the repo directly and objects, proposes, asks — with evidence |
+| Rights | edit, run, final synthesis | **read-only** (`team-reviewer` agent: no Write/Edit) |
+| Role | drafts, verifies, rebuts/accepts, applies consensus | reads the repo directly and objects, proposes, asks — with evidence |
 
 ## Tool
 
-```bash
-bash ~/.claude/skills/debate/grok-turn.sh <prompt-file> [session-id|new] [max-turns]
-# → {"sessionId":"…","text":"…","cost":0.01,"stopReason":"end_turn"}
-```
-
-- First round `new`; later rounds pass the returned `sessionId` (Grok remembers the conversation,
-  so never repeat earlier content).
-- Always pass prompts as files (`/tmp/team/<slug>/debate-r<N>.md`) to avoid shell quoting.
-- `max-turns` default 8: how many file reads/greps Grok may do. Use 12–15 for large code reviews,
-  30 for a design review.
-- If the result has `"maxTurns": true`, resume **the same `sessionId`** with "Stop exploring. Answer
-  now in the required format from what you have." (max-turns 10). Never start a new session for it.
-- A new session's id is written to stderr and `<prompt dir>/last-grok-session` before Grok starts,
-  so a killed call can be resumed.
-- The script `cd`s to the repository root itself.
-- `stopReason: "cancelled"` means Grok ran a command outside the script's read-only list (`git -c`,
-  a test run, a write); resume the same `sessionId` once with "Use only the allowed read-only
-  commands. Answer now in the required format."
-- About $0.01–0.05 per turn.
+The Agent tool with `subagent_type: "team-reviewer"` and `model: "sonnet"` — a different model from
+the driver, so it misses different things. When the driver itself runs on Sonnet, use `model:
+"opus"` instead. Missing agent → `general-purpose` with the same read-only instruction.
+- Round 1 starts the agent; later rounds go to the **same agent** via SendMessage (it remembers the
+  conversation, so never repeat earlier content). Subagents run in the background; you are notified.
+- Keep the prompt self-contained: the critic starts with a fresh context.
+- Keep the full transcript per round in `/tmp/team/<slug>/debate-log.md`.
 
 ## Procedure
 
@@ -53,17 +43,17 @@ Write the user's request as a one-paragraph **proposal**. For code work, Claude 
 decision list for a design, the actual diff for an implementation). Never just ask "what do you
 think?" without a draft — the debate converges only when there is something to attack.
 
-### 1. Round 1 prompt (`debate-r1.md`)
+### 1. Round 1 prompt
 ```
 You are a senior engineer and critical co-designer for this repository. Repository path: <cwd>
 Proposal: <proposal>
 My draft:
 <draft / diff / decision list>
-Relevant files: <paths — so Grok reads them itself and cites evidence>
+Relevant files: <paths — read them yourself and cite evidence>
 
 Requirements:
 - Actually read the files and cite evidence (file:line). Mark guesses as guesses.
-- Read-only commands only — the allowed list is in your rules; anything else cancels your turn.
+- Review only: do not edit files; no DB/MCP writes, no deploys, no integration tests that write.
 - Use this format:
   ## Agree
   ## Disagree (evidence for each item)
@@ -75,32 +65,32 @@ Requirements:
 - Don't be polite; if something is wrong, say so. Answer in the user's language.
 ```
 
-### 2. Examine Grok's response (the core — never accept on authority)
+### 2. Examine the critic's response (the core — never accept on authority)
 For each objection/alternative, **check the code/docs directly** and judge:
 - Correct → accept, revise the draft
 - Wrong → rebut with evidence (file:line, test result, observed behavior)
 - Needs checking → actually check (grep, run tests) before judging
-Answer Grok's questions. If you don't know, say so.
+Answer the critic's questions. If you don't know, say so.
 
-### 3. Round N prompt (resume the same session)
+### 3. Round N (SendMessage to the same agent)
 Only new information and open points, briefly:
 ```
 Accepted: <item> → draft changed like this: <change>
 Rebutted: <item> — evidence: <file:line / result>
-Answers: <answers to Grok's questions>
-Please also check: <specific spots Grok should look at>
+Answers: <answers to your questions>
+Please also check: <specific spots to look at>
 Answer in the same format and update your verdict.
 ```
 
 ### 4. Stop conditions (whichever comes first)
-- Grok's verdict is **agree** with no new objections
+- The critic's verdict is **agree** with no new objections
 - Max rounds reached — default **3** ("go deep" → 5, "keep it light" → 2)
 - The remaining disagreement is a **business judgment** the code can't settle (cost, customer
   impact, operating policy) → stop and hand it to the user
 
 ### 5. Apply consensus + final review
-Apply the consensus to the design/code. For implementation work, attach `git diff` afterwards and
-run **one final review round** ("check only whether this diff reflects the consensus exactly, and
+Apply the consensus to the design/code. For implementation work, send `git diff` afterwards and run
+**one final review round** ("check only whether this diff reflects the consensus exactly, and
 regression risk").
 
 ### 6. Report to the user (once)
@@ -109,23 +99,22 @@ regression risk").
 - key decisions as bullets
 
 ## What the debate changed  ← this is the value: what improved vs the draft
-- draft: … → consensus: … (Grok's point: …, evidence: …)
+- draft: … → consensus: … (critic's point: …, evidence: …)
 
 ## Unresolved (only if any)
-- issue / Claude's position + evidence / Grok's position + evidence / why the user must decide
+- issue / Claude's position + evidence / critic's position + evidence / why the user must decide
 
-N rounds, Grok cost $X
+N rounds
 ```
-Keep the full transcript per round in `/tmp/team/<slug>/debate-log.md` (show it if the user asks
-"show me the debate").
+Show `/tmp/team/<slug>/debate-log.md` if the user asks "show me the debate".
 
 ## Rules
 - Don't interrupt the user mid-debate. Report once at the end. Exception: the business-judgment
   case in step 4.
-- Grok's claims are accepted only after verification. Claude's claims aren't pushed without
+- The critic's claims are accepted only after verification. Claude's claims aren't pushed without
   evidence either.
-- Only Claude edits and runs things. Never tell Grok to "fix it".
+- Only Claude edits and runs things. Never tell the critic to "fix it".
 - No verification that writes to production databases or external services (reads only).
-- Keep round prompts short; the session remembers.
-- If `grok-turn.sh` returns `error` (other than `maxTurns`, handled above), retry once; if it keeps
-  failing, continue without Grok and say so in the report.
+- Keep round prompts short; the agent remembers.
+- If the critic fails or returns no `## Verdict:`, retry once with a new agent; if it keeps failing,
+  continue without it and say so in the report.
