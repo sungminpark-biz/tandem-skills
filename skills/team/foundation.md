@@ -97,7 +97,7 @@ both sides' evidence.
 - Decisions (N): NNN <title> — one line each (+ what the review changed)
 - Slices: S1 <walking skeleton> / S2 … / S3 … (+N more, one line each)
 - Adversarial review: reviewer raised N / risk reviewer raised M → Claude accepted N / rebutted N
-  (or: a review failed or is still running — why)
+  (or: a review failed — why)
 - Contested (your call): …
 - Open questions: …
 Reply "approve" to accept the foundation and start S1. Otherwise tell me what to change.
@@ -110,7 +110,8 @@ after that gate, as in section 0 — never hand `slices.md` to an implementer as
 Entered two ways: a slice's design, implementation or review shows that a charter line or an accepted
 decision is wrong (or needs a new expensive-to-reverse decision), or the user asks for a change
 directly (`/team foundation change: …`).
-1. **Stop the slice, if one is in progress.** In C with a worker running: reply to its pending
+1. **Stop the slice, if one is in progress.** Without Orca: ask the user to stop their `claude --model
+   sonnet` session and list what it changed. In C with a worker running: reply to its pending
    question, or `orca orchestration send --to dispatch:<ctx_id> --subject "Stop" --body "<msg>" --json`
    (workers read follow-ups at their checkpoints), with "Stop: the design is changing. Don't edit
    further; send worker_done with --outcome failed and the files modified so far." Wait for

@@ -46,11 +46,11 @@ MCP도, 데몬도, 스크립트도 없습니다. `SKILL.md` 2개와 리뷰어 �
 
 ## 요구사항
 
-- [Claude Code](https://code.claude.com) ≥ 2.1 (`claude` PATH, 로그인)
+- [Claude Code](https://code.claude.com) (`claude` PATH, 로그인; 테스트한 버전은 아래)
 - [ponytail](https://github.com/DietrichGebert/ponytail) — Claude Code에 필요. 없으면 `/team`이 시작하지
   않음 (설치 참고)
-- [Orca](https://github.com/stablyai/orca) — 구현 단계에서 필요 (Sonnet 워커가 터미널 탭이 보이는 Orca
-  워커로 실행됨). 설계·리뷰·기초 설계 모드는 없어도 동작
+- [Orca](https://github.com/stablyai/orca) — 터미널 탭이 보이는 감독받는 Sonnet 워커에 필요. 없으면
+  `claude --model sonnet`에서 직접 구현하고 리뷰를 받으러 돌아오면 됨. 설계·리뷰·기초 설계 모드는 없어도 동작
 - 권장: [context7](https://github.com/upstash/context7) 플러그인 — 설계의 최신성 확인용
   (`/plugin install context7@claude-plugins-official` 후 `/mcp`로 한 번 로그인)
 
@@ -146,12 +146,12 @@ Claude가:
 
 | 대상 | 방식 | 효과 |
 |---|---|---|
-| 리뷰어와 debate 반론자 | `team-reviewer` 서브에이전트: `Write`, `Edit`, `NotebookEdit` 금지 | 저장소를 읽고 읽기 전용 명령을 실행할 뿐, 파일을 고칠 수 없음 |
+| 리뷰어와 debate 반론자 | `team-reviewer` 서브에이전트: `Write`, `Edit`, `NotebookEdit` 금지 | 편집 도구가 없음. 저장소를 읽고 명령을 실행 (Bash는 sandbox가 아님 — 한계 참고) |
 | 워커 | Orca 워커 지시서: 설계의 변경 범위, "커밋 금지", 질문은 Orca의 `ask`로 | 변경이 승인된 범위 안에, 커밋되지 않은 채로 리뷰를 기다림 |
 | 승인 게이트 | 스킬 규칙 | 설계(그리고 기초 설계) 확정 후 드라이버는 턴을 끝내고 기다려야 함 |
 
 실제 실행에서 나온 세부 사항:
-- 설계 프롬프트는 "뼈대를 먼저 쓰고 채워라"라고 하고 도구 호출 수를 제한합니다 — 높은 effort의 Opus는
+- 설계 방법은 "뼈대를 먼저 쓰고 채워라"라고 하고 도구 호출 수를 제한합니다 — 높은 effort의 Opus는
   그러지 않으면 한 글자 쓰기 전에 20분 넘게 탐색합니다.
 - 리뷰어는 기본 `Plan` 에이전트가 아니라 커스텀 서브에이전트입니다. `Plan`은 한 번 실행하고 끝나서(agent ID
   없음) 2라운드 검토를 보낼 수 없고, `CLAUDE.md`도 읽지 않습니다.
@@ -160,12 +160,13 @@ Claude가:
 
 ## 한계
 
-- 리뷰어, 반론자, 워커가 모두 Claude 모델입니다. 코드 리뷰는 모델을 건너가지만(Opus가 Sonnet의 코드를
-  검토), 다른 회사 모델의 시각은 더 이상 없습니다.
+- 리뷰어, 반론자, 워커가 모두 Claude 모델입니다. 코드 리뷰는 항상 모델을 건너가지만(Opus가 Sonnet의 코드를,
+  Sonnet이 Claude가 직접 짠 코드를 검토), 다른 회사 모델의 시각은 더 이상 없습니다.
 - 리뷰어의 Bash는 sandbox가 아닙니다. "리뷰만, DB·외부 서비스에 쓰지 말 것"은 프롬프트 규칙입니다. 운영
   환경에 닿는 Claude Code 허용 규칙이 있는지 확인하세요.
 - 승인 게이트는 모델이 지키는 규칙이지, 하드 블록이 아닙니다.
-- 구현 단계는 Orca가 필요합니다. 설계·리뷰·기초 설계 모드는 어디서든 동작합니다.
+- 감독받는 워커는 Orca가 필요합니다. 없으면 `claude --model sonnet`에서 직접 구현합니다. 설계·리뷰·기초
+  설계 모드는 어디서든 동작합니다.
 - 기초 설계 모드는 새로 추가되어 아직 전체 실행 전 — 첫 실행을 지켜보세요.
 - 워커가 사람만 답할 수 있는 프롬프트(plan 모드 진입, 질문 카드)에서 멈출 수 있음. 스킬이 `worker-show`의
   `agentWait`로 감지해 답하지만 탭을 지켜보세요.

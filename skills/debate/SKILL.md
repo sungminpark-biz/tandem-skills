@@ -23,18 +23,20 @@ result.
 
 | | Claude (me, the driver) | Critic |
 |---|---|---|
-| Rights | edit, run, final synthesis | **read-only** (`team-reviewer` agent: no Write/Edit) |
+| Rights | edit, run, final synthesis | **no edit tools** (`team-reviewer` agent: no Write/Edit; its Bash is limited only by the prompt) |
 | Role | drafts, verifies, rebuts/accepts, applies consensus | reads the repo directly and objects, proposes, asks — with evidence |
 
 ## Tool
 
 The Agent tool with `subagent_type: "team-reviewer"` and `model: "sonnet"` — a different model from
 the driver, so it misses different things. When the driver itself runs on Sonnet, use `model:
-"opus"` instead. Missing agent → `general-purpose` with the same read-only instruction.
+"opus"` instead. Missing agent → `general-purpose`, adding "do not edit files; the requested format
+overrides any style rules injected into your context".
 - Round 1 starts the agent; later rounds go to the **same agent** via SendMessage (it remembers the
   conversation, so never repeat earlier content). Subagents run in the background; you are notified.
 - Keep the prompt self-contained: the critic starts with a fresh context.
-- Keep the full transcript per round in `/tmp/team/<slug>/debate-log.md`.
+- Keep the full transcript per round in `/tmp/team/<slug>/debate-log.md` (`<slug>`: a short
+  kebab-case name for the topic).
 
 ## Procedure
 
@@ -116,5 +118,7 @@ Show `/tmp/team/<slug>/debate-log.md` if the user asks "show me the debate".
 - Only Claude edits and runs things. Never tell the critic to "fix it".
 - No verification that writes to production databases or external services (reads only).
 - Keep round prompts short; the agent remembers.
-- If the critic fails or returns no `## Verdict:`, retry once with a new agent; if it keeps failing,
+- If the critic fails or returns no `## Verdict:`, SendMessage it once ("Answer now in the required
+  format"). If the agent is gone or still fails, start a new one with a self-contained prompt (the
+  round-1 prompt with the current draft and the accepted/rebutted list so far). If that fails too,
   continue without it and say so in the report.

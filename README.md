@@ -47,12 +47,12 @@ from the one that wrote it.
 
 ## Requirements
 
-- [Claude Code](https://code.claude.com) ≥ 2.1 (`claude` on PATH, logged in)
+- [Claude Code](https://code.claude.com) (`claude` on PATH, logged in; tested range below)
 - [ponytail](https://github.com/DietrichGebert/ponytail) in Claude Code — `/team` refuses to start
   without it (see Install)
-- [Orca](https://github.com/stablyai/orca) for the implementation step, where the Sonnet worker runs
-  as a supervised Orca worker with a visible terminal tab. Design, review and foundation mode work
-  without it.
+- [Orca](https://github.com/stablyai/orca) for the supervised Sonnet worker with a visible terminal
+  tab. Without it, you run the implementation yourself in `claude --model sonnet` and come back for
+  the review; design, review and foundation mode work without it.
 - Recommended: the [context7](https://github.com/upstash/context7) plugin, for the design's currency
   check (`/plugin install context7@claude-plugins-official`, then log in once with `/mcp`)
 
@@ -155,12 +155,12 @@ deliberately not built).
 
 | Piece | Mechanism | Effect |
 |---|---|---|
-| Reviewers and the debate critic | `team-reviewer` subagent: `Write`, `Edit`, `NotebookEdit` disallowed | They read the repo and run read-only commands; they can't edit files |
+| Reviewers and the debate critic | `team-reviewer` subagent: `Write`, `Edit`, `NotebookEdit` disallowed | No edit tools; they read the repo and run commands (their Bash isn't sandboxed — see Limitations) |
 | Worker | Orca worker spec: the design's scope of change, "do not commit", questions through Orca's `ask` | Changes stay inside the approved scope, uncommitted, for review |
 | Approval gates | skill rule | The driver must end its turn and wait after the design (and the foundation) is final |
 
 Other details that came out of real runs:
-- Design prompts say "write the skeleton first, then fill in" and cap tool calls — Opus at high
+- The design method says "write the skeleton first, then fill in" and caps tool calls — Opus at high
   effort will otherwise explore for 20+ minutes before writing a word.
 - The reviewer is a custom subagent, not the built-in `Plan` agent: `Plan` is one-shot (no agent ID),
   so a second review round can't reach it, and it skips `CLAUDE.md`.
@@ -169,12 +169,13 @@ Other details that came out of real runs:
 
 ## Limitations
 
-- Reviewer, critic and worker are all Claude models. The code review crosses models (Opus reviews
-  Sonnet's code), but there is no other vendor's view any more.
+- Reviewer, critic and worker are all Claude models. The code review always crosses models (Opus
+  reviews Sonnet's code, Sonnet reviews Claude's own), but there is no other vendor's view any more.
 - The reviewer's Bash isn't sandboxed; "review only, no writes to databases or external services" is a
   prompt rule. Check your Claude Code allow rules for anything that reaches production.
 - Approval gates are a model-compliance property, not a hard block.
-- The implementation step needs Orca. Design, review and foundation mode work anywhere.
+- The supervised worker needs Orca; without it you run the implementation yourself in
+  `claude --model sonnet`. Design, review and foundation mode work anywhere.
 - Foundation mode is new and has not had a full run yet — watch the first one.
 - A worker can park on a prompt only a human can answer (plan-mode entry, a question card). The skill
   detects it through `worker-show`'s `agentWait` and answers it, but watch the tab.

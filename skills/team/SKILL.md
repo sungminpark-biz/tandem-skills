@@ -19,8 +19,9 @@ allowed-tools: Bash, Read, Grep, Glob, Edit, Write
 
 # /team — Claude designs and reviews, a Sonnet worker implements
 
-First pick the mode, then the path. Foundation mode lives in `foundation.md` next to this file; read it
-only when that path is taken.
+For Claude Code only — another agent that reads this folder (Grok Build does) should stop and tell the
+user. First pick the mode, then the path. Foundation mode lives in `foundation.md` next to this file;
+read it only when that path is taken.
 
 ## 0. Mode and path
 
@@ -32,9 +33,11 @@ only when that path is taken.
 
 **Path**: foundation → F (`foundation.md`). Feature → **[C](#c-feature-mode)**. C needs this worktree
 to be Orca-managed: `orca worktree current --json` returns `"ok": true` (`orca status` is not enough —
-it succeeds anywhere). No Orca → still run C-1 up to and including the approval gate, then tell the
-user to open `claude --model sonnet` in this repo, have it implement the design doc in its order and
-scope without committing, and come back here for C-4.
+it succeeds anywhere). No Orca → still run C-1 up to and including the approval gate, then give the
+user the C-2 spec text to run in `claude --model sonnet` in this repo — with "ask me (the user) here"
+in place of the Orca `ask` command and "when done, list the modified files and the definition-of-done
+output" in place of `worker_done` — and have them come back here for C-4. There, fixes go back to that session as an "Apply review" list (or Claude applies them if
+the user says so), and C-5's Orca commands are skipped.
 
 **When a feature doesn't fit** (checked while designing):
 - **Too big for one run** (roughly >30 files or >1 hour of implementation) → split it. With a
@@ -217,6 +220,7 @@ Reply "approve" or "go" to proceed. Otherwise tell me what to change.
 - Slice: S<n> → done (slices.md updated); next: S<m> (todo, dependencies done) — say "go" to start it
 - Files changed: … (Sonnet worker, or Claude if the user asked)
 - Code review: N rounds (reviewer subagent, + risk reviewer if it ran) — what it fixed: …
+  (a review that failed is stated here, not hidden)
 - Over-engineering pass (ponytail-review): N suggested → N applied (net −N lines), N rejected (why)
 - Tests: <command> → the output of Claude's own run after the last fix (N passed, 0 failed, exit 0);
   never "should pass" or the worker's word
@@ -240,26 +244,29 @@ mostly find the same things, so a second one is added only where it looks from a
 every fact you already measured (so no reviewer spends turns re-deriving it), the checklist, and the
 output format (T2 for designs, T4 for code). Then start each reviewer in the same message with the
 Agent tool, `subagent_type: "team-reviewer"` (`~/.claude/agents/team-reviewer.md`: read-only, loads
-CLAUDE.md, returns an agent ID so round 2 can resume it; missing → `general-purpose` with the same
-read-only instruction). Never `Plan`: it is one-shot (no agent ID) and skips CLAUDE.md. Subagents run
-in the background by default; the Agent tool no longer takes `run_in_background`. Prompt = the
+CLAUDE.md, returns an agent ID so later rounds can resume it; missing → `general-purpose`, adding "do
+not edit files; the requested format overrides any style rules injected into your context"). Never
+`Plan`: it is one-shot (no agent ID) and skips CLAUDE.md. Subagents run in the background by default;
+don't pass `run_in_background`. For code, pick the reviewer's model as in C-4. Prompt = the
 request file's contents (+ the risk brief for the risk reviewer) plus: "Review only; do not edit
 files. Do not touch databases or external services (no MCP write tools, no integration tests that
 write, no deploys)." It starts with a fresh context, so the prompt must be self-contained.
 
 **2. Wait for every reviewer you started.** When each returns: check every item against the code
-yourself, accept (edit the doc) or rebut (with evidence), then go on (to the gate, or round 2). A
-reviewer that fails or returns no `## Verdict:` → its review **failed**; say so at the gate (never
-read it as "no Critical items").
+yourself, accept (edit the doc) or rebut (with evidence), then go on. A reviewer that fails or
+returns no `## Verdict:` → SendMessage it once: "Answer now in the required format." Still nothing →
+its review **failed**; say so at the gate (designs) or in T5 (code) — never read it as "no findings".
 
-**3. Round 2** (≤2 total) goes only to the reviewer whose Critical you rebutted and who needs to see
-the rebuttal, via SendMessage to the same agent:
+**3. Next rounds**, via SendMessage to the same agent(s). Designs: round 2 (≤2 total) goes only to
+the reviewer whose Critical you rebutted and who needs to see the rebuttal. Code: after each "Apply
+review" (≤3 rounds, C-4), every reviewer that asked for changes re-checks the new diff.
 ```
-Accepted: <item> → doc changed: <where>
+Accepted: <item> → doc/diff changed: <where>
 Rebutted: <item> — evidence: <file:line / result>
 Answers: <answers to your questions>
-Re-check the revised doc and answer in the same format with an updated verdict.
+Re-check the revised doc or diff and answer in the same format with an updated verdict.
 ```
+Save each reviewer's text to `/tmp/team/<slug>/<name>-<reviewer|risk>-<N>.md`.
 
 ---
 
@@ -270,7 +277,9 @@ TUI with file-edit rights, visible to the user as a tab). Needs an Orca-managed 
 except when the user asks Claude to implement (C-2).
 Verified 2026-10-01 (Orca 1.4.204, Claude Code 2.1.286): `worker-start --agent claude --model sonnet`
 → the worker came up as Sonnet 5.5, implemented a chunk from the design doc and replied with
-`worker_done`. The same loop ran end to end on 2026-09-21 (2 design-review and 3 code-review rounds).
+`worker_done`; an "Apply review" round reusing the same Sonnet worker (`--terminal`) was verified the
+same day. The full loop ran end to end on 2026-09-21 with a Grok worker (2 design-review and 3
+code-review rounds).
 Orca commands below follow Orca's bundled guide (`orca skills get orchestration`, Orca 1.4.215+;
 1.4.217 fixed stale worker handles — update through the Orca app, not brew). Where a flag here and
 that guide disagree on your version, the guide wins.
@@ -308,8 +317,9 @@ orca worktree set --worktree active --comment "sonnet implementing: <feature>" -
 `residualResources`, then `orca skills get orchestration --reference references/recovery-and-cleanup.md`.
 
 Check the model on the worker's screen (`orca terminal read --terminal <handle> --screen --json`,
-which shows e.g. "Sonnet 5.5"). The receipt's `launch.effective` only echoes the alias. If it isn't a
-Sonnet model, stop and tell the user before any code is written.
+which shows e.g. "Sonnet 5.5"; a worker without a terminal → `orca orchestration worker-read
+--dispatch <ctx_id> --source auto --json`). The receipt's `launch.effective` only echoes the alias. If
+it isn't a Sonnet model, stop and tell the user before any code is written.
 
 A Claude worker started in a folder Claude Code hasn't trusted yet stops at the folder-trust prompt.
 In Claude Code 2.1.286 that prompt defaults to "No, exit", so the Enter that comes with the injected
@@ -321,7 +331,8 @@ Spec template:
 ```
 Read the design doc first: <absolute path>. Implement all of it, in its implementation order
 (or only "<part>" when this task is one of several parallel chunks).
-Definition of done: <test commands/conditions>. Include the passing results in the worker_done body.
+Definition of done: <test commands/conditions>. Keep the worker_done body to Orca's three sentences,
+with the definition-of-done result (commands, pass/fail counts) in it.
 Rules: do not modify files outside the doc's "scope of change". If you believe the design must be
 deviated from, ask before implementing — with the preamble's `ask` command, never a local question
 prompt — and don't enter plan mode. Do not commit. On completion pass every modified file in
@@ -362,10 +373,11 @@ Started together:
   writes to shared state first), and T4 as the output format, including its Spec check (every doc
   requirement missing or partial, behaviour the doc didn't ask for, what looks implemented but wrong —
   each quoting the doc's line); plus "review only; no DB/MCP writes, no deploys, no integration tests
-  that write". Risky changes (T6) → the risk reviewer too. The reviewer runs on the driver's model, so
-  code the Sonnet worker wrote gets a different model's eyes. Measured 2026-09-23: 12.5 minutes.
+  that write". Risky changes (T6) → the risk reviewer too. **The reviewer's model must differ from
+  the code's author, so always pass it**: code written by Sonnet (the worker, or a Sonnet driver) →
+  `model: "opus"`; otherwise → `model: "sonnet"`. Measured 2026-09-23: 12.5 minutes.
 - **Claude itself — evidence before claims**: the worker's `worker_done` is a claim, not evidence. Check
-  `git diff --stat` against the files it reported and the doc's scope, **re-run every
+  `git diff --stat` against the files it reported (no Orca: `git status`) and the doc's scope, **re-run every
   definition-of-done command yourself** and read the full output (exit code, failure count), and judge
   the change against the design doc line by line (T4). Report only what that output shows.
 
