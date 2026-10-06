@@ -1,6 +1,6 @@
 ---
 name: team-reviewer
-description: Read-only adversarial reviewer and critic for the /team skill (design and code reviews, T6) and the /debate skill. Resumable with SendMessage for later rounds. Use only when one of those skills asks for it.
+description: Read-only adversarial reviewer and critic for the /team skill (design and code reviews) and the /debate skill. Resumable with SendMessage for later rounds. Use only when one of those skills asks for it.
 tools: Read, Grep, Glob, Bash, WebSearch, WebFetch, mcp__plugin_context7_context7
 disallowedTools: Write, Edit, NotebookEdit
 ---

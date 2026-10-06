@@ -1,210 +1,129 @@
-# /team: foundation mode
+# /team: founded services
 
-Part of the team skill. Read it only for foundation mode, F-change or a milestone run (F-M). Section
-ids (T1–T6, C-1…) and the Shared rules are in `~/.claude/skills/team/SKILL.md`, which is already
-loaded.
-
-## F. Foundation mode
-
-For a service designed from scratch, or a re-founding. Orca is not required (the reviewers are
-subagents). Output lives in `docs/design/foundation/` and is **canonical**: feature
-design docs cite it and never restate or override it. It changes only through F-change.
+Part of the team skill: its Rules, Orca worker commands and templates (D, R, C, S, T) are in
+`SKILL.md`, already loaded. `docs/design/foundation/` is **canonical**: design docs cite it and never
+override it; it changes only through **Change**.
 ```
 docs/design/foundation/
   charter.md                what the service is — the user's decisions
   decisions/NNN-<slug>.md   one expensive-to-reverse decision each
-  slices.md                 the ordered slice map + status
+  slices.md                 milestones, their slices, status
 ```
-Scratch: `/tmp/team/<slug>/` with `<slug>` = `foundation-<service>` (so T6's paths hold as written).
 
-### F-0. Inventory
-- A foundation already exists → update it; don't recreate it. A request to change it → F-change.
-- Read the existing design docs, code and infra. **One canonical place per decision**: if an existing
-  doc already settles something, prefer extracting it into the foundation and leaving a pointer in the
-  old doc; never keep two canonical copies. Whether to edit the user's existing docs is one of the F-1
-  questions.
-- Measure what already exists (read-only): tables and row counts, deployed services, traffic.
+## Found
+1. **Inventory**: a foundation already exists → update it, don't recreate it. Read the existing docs,
+   code and infra; one canonical place per decision (extract into the foundation, leave a pointer;
+   whether to edit the user's docs is a charter question). Measure what exists, read-only.
+2. **Charter** (the user decides, Claude drafts; 1–2 pages):
+   ```
+   One line: what, for whom · Who does what: core flows · Success / failure: observable signals ·
+   Design caps: the scale to hold · Not doing · Stage: pre-launch | live (live = real users or
+   customer data exist) · Open questions
+   ```
+   Every unknown is a question, never a guessed business decision: ask in batches of up to 4
+   (AskUserQuestion, recommended option first). **Gate**: show one line, caps, non-goals, open
+   questions; end your turn. Go on only on "OK" / "approve" / "go".
+3. **Decisions**: only what is expensive to reverse once code or data depend on it. Check: data model
+   and source of truth, identity/auth, tenancy and permissions, external integrations, money and
+   document flow, runtime and background work, observability. One page each:
+   ```
+   # NNN <title>
+   Status: proposed | accepted | superseded by NNN | rejected
+   Context (charter lines, measured facts) · Decision · Options considered (reuse / platform primitive
+   / simplest — why not) · Currency: current recommended way, dated source · Consequences ·
+   Revisit when (an observable signal tied to the caps) · Not built
+   ```
+4. **Milestone map** → `slices.md`. A milestone is one user-visible capability made of 2–4 slices; a
+   slice is what one reviewer can review in one pass (roughly ≤30 files, ≤1 hour of worker time).
+   M1 is a walking skeleton: the thinnest end-to-end path touching every decision once, outside
+   production. Then order by risk (least-proven decision first), then value. Per slice: goal /
+   decisions / scope (modules) / definition of done / depends on / risk (money, auth, data-changing
+   migration). Status `todo` → `done` (reviewed and committed); `blocked: <reason>`. Detail M1 only.
+5. **Review**: reviewer + risk reviewer with template R plus: contradictions (decision vs charter,
+   decision vs decision, slice vs decision); a missing expensive decision, or a cheap one listed;
+   over-building against the caps; M1 really touches every decision; a slice too big. ≤2 rounds.
+6. **Gate**, then end your turn:
+   ```
+   ## Foundation ready — approval requested
+   Charter one line · decisions (one line each, + what review changed) · M1 slices, later milestones
+   one line each · review: raised / accepted / rebutted · contested (your call) · open questions
+   Reply "approve" and I'll propose M1, or tell me what to change.
+   ```
+   Approved → decisions `accepted`, then a milestone run for M1.
 
-### F-1. Charter (the user decides; Claude drafts) → `charter.md`
-Sections, 1–2 pages in total:
-```
-- One line: what the service does, for whom
-- Who, and what each does: the core flows, one short paragraph each
-- Success / failure: observable signals, not adjectives
-- Design caps: the scale the design must hold (users, companies, orders, catalog, regions…) —
-  the scale evidence while there is no traffic
-- Not doing: explicit non-goals
-- Stage: pre-launch | live (live = real users or real customer data exist)
-- Open questions
-```
-Draft from the request, the existing docs and F-0. **Mark every unknown as a question — don't guess
-business decisions.** Ask in batches of up to 4 (AskUserQuestion when available: concrete options,
-the recommended one first). The reviewers do not review the charter — these are product calls, not code.
-**Gate: show the charter summary (one line, caps, non-goals, open questions left) and end your turn.**
-Go on to F-2 only on "OK" / "approve" / "go"; anything else → revise and show it again. Open questions
-that a decision depends on must be answered before that decision is written.
-
-### F-2. Decision records → `decisions/NNN-<slug>.md`
-Only decisions that are **expensive to reverse once code or data depend on them**. Check each
-candidate and skip what doesn't apply: data model and source of truth (ledger), identity/auth and
-account linking, tenancy and permissions, external integrations (channels, payments, carriers),
-money and document flow, runtime/deployment and background work (queues, cron, webhooks),
-observability. Cheap-to-reverse choices (screen layout, copy, a library used by one screen) belong
-in slice designs — leave them out.
-```
-# NNN <decision title>
-Status: proposed | accepted | superseded by NNN | rejected
-Context: the charter sections and measured facts this rests on
-Decision: …
-Options considered: reuse an existing asset / a platform primitive / the simplest option — and why each was rejected
-Currency: the currently recommended approach, with a date-stamped source
-Consequences: what this commits us to; what gets harder
-Revisit when: the observable signal that would make this wrong (tie it to the design caps)
-Not built: …
-```
-Keep each record to about one page. Write every record's skeleton first, then fill them in.
-
-### F-3. Slice map → `slices.md`
-- **S1 is a walking skeleton**: the thinnest end-to-end path that exercises every accepted decision
-  once and runs in a non-production environment (e.g. inbound event → source-of-truth row → one
-  screen → preview deploy). No polish. If that can't fit one run, split it into S1a, S1b… that
-  together touch every decision, chained with `depends on` — the size rule wins.
-- Then order by risk (the least-proven decision first), then by value.
-- Each slice fits **one feature run**: roughly ≤30 files and ≤1 hour of implementation. Split
-  anything larger.
-- Per slice: goal (one line) / decisions exercised (NNN) / rough scope (modules or directories, not
-  file lists) / definition of done / depends on / status.
-- Group the slices into milestones (M1, M2… — one user-visible capability each). A milestone is the
-  unit of approval when the service is built (F-M).
-- Status: `todo` → `designed` (its T3 gate approved, or in a milestone run its design review passed)
-  → `done` (reported, or in a milestone run its code review approved and committed). `blocked: <reason>` when
-  it stops (F-change, design still contested after 2 review rounds, code review not approved after its
-  last round);
-  back to `designed` when its revised design is approved again.
-- Detail S1–S3 only; the rest are one line each.
-
-### F-4. Adversarial review (T6, read-only)
-T6 with the request `/tmp/team/<slug>/foundation-review-req.md`: the absolute paths of the charter,
-every decision record and `slices.md`, this checklist, and the T2 output format.
-- Contradictions: decision vs charter, decision vs decision, slice vs decision
-- Missing expensive decisions (what would hurt to change after S3?); listed decisions that are
-  actually cheap to reverse (move them into slices)
-- Rewrite vs reuse, stale patterns, over-engineering against the design caps (cite them), unmeasured claims
-- Does S1 (or S1a, S1b…) really touch every decision end to end? Is any slice too big for one run?
-
-Check every item against the code and docs **yourself**, then accept (edit the doc) or rebut (with
-evidence). ≤2 rounds (T6 step 3). Items still contested after 2 rounds go to the user at F-5 with
-both sides' evidence.
-
-### F-5. Foundation approval gate
-```
-## Foundation ready — approval requested
-- Charter: docs/design/foundation/charter.md — one line: …
-- Decisions (N): NNN <title> — one line each (+ what the review changed)
-- Slices: S1 <walking skeleton> / S2 … / S3 … (+N more, one line each)
-- Adversarial review: reviewer raised N / risk reviewer raised M → Claude accepted N / rebutted N
-  (or: a review failed — why)
-- Contested (your call): …
-- Open questions: …
-Reply "approve" to accept the foundation; I'll then propose the first milestone. Otherwise tell me what
-to change.
-```
-End your turn and wait. Approved ("approve" / "go" / "OK") → set the decision records to `accepted`, then build
-the first milestone: pre-launch → F-M; live → S1 at **C-1** with its own T3 gate. (Without Orca, each
-slice's implementation is handed off as in section 0 — never hand `slices.md` to an implementer as a
-design.)
-
-### F-M. Milestone run — how a pre-launch founded service gets built
-For a charter with `Stage: pre-launch` (no real users or customer data yet). No `Stage:` line → ask the
-user once; their answer is the approval, added as a dated charter line. `Stage: live`, or no answer
-yet → build slice by slice through C with T3. **The foundation's own records win**: if a decision
-already sets how milestones are built (approval unit, risk grades, test or DB rules), follow it and use
-F-M only for what it leaves open; changing it is an F-change. A rule this skill can't follow (e.g. a
-reviewer tool it no longer has) is named at the milestone gate. The user flips the stage to `live` when
-real users or customer data arrive; then run one risk review of the auth, customer-data and money code
-built before launch (T6 risk brief, one reviewer per area), turn its findings into fix slices, and
-record `launch risk review: <date>` in the charter.
-Entered for a milestone ("M5 진행해", `/team M5`) or a slice of one. Work that belongs to no milestone
-joins the current one, or becomes a one-slice milestone.
-1. **Plan** (≤10 minutes): from the charter, decisions and `slices.md` (or wherever the foundation
-   keeps its milestone list), list the milestone's slices not yet `done`, in dependency order, one line
-   each: goal / modules / definition of done / depends on / money flow or data-changing migration? A
-   milestone without slice ids gets them here (S<m>a, S<m>b…), written into `slices.md` once the gate is
-   approved. A named slice goes first only if its dependencies are `done`; otherwise the run starts at
-   its first unfinished dependency. Re-running a stopped milestone re-uses `designed` docs after
-   re-checking them against the current code.
-2. **Milestone gate** — show this, then end your turn and wait:
+## Milestone run
+Entered for a milestone ("M5 진행해", `/team M5`) or a slice (that slice plus its unfinished
+dependencies). **The foundation's own records win**: where a decision already sets the approval unit,
+risk grades or test and DB rules, follow it and use this only for what it leaves open; a rule this
+skill can't follow is named at the gate; changing one is a Change.
+1. **Plan** (≤10 minutes, parallel Explore agents per area): the milestone's slices not yet `done`, in
+   dependency order, with ids (S<m>a, S<m>b… if missing). Slices with no dependency between them and
+   no shared source files are **parallel**. A milestone design doc already exists (a stopped run) →
+   re-check it against the current code; slices its `Approved:` line lists that are still valid go to
+   Build with no new gate; any other slice, or a substantial change, goes through review and the gate.
+2. **One milestone design doc** `docs/design/<YYYYMMDD>-m<n>-<slug>.md`: shared interfaces and
+   migrations first, then template D per slice. Skip what the foundation already settled.
+3. **One review** (template R; the risk reviewer if any slice is risky; a big milestone gets one
+   reviewer per group of slices), ≤2 rounds.
+4. **Milestone gate**, then end your turn:
    ```
    ## Milestone M<n> — approval requested
-   - Slices, in order: S… — one line each
-   - Shared interfaces and migrations expected: …
-   - Money flows and data-changing migrations (these get the risk reviewer): …
-   - After each slice's code review: local commit of its own files (no push); applying migrations or
-     other post-review steps — by whom and where: …
-   - Without Orca: each slice needs you to run its spec in `claude --model sonnet` and come back
-   - What stops the run and comes back to you: a Critical still contested after 2 rounds, a code
-     review not approved after its last round, an F-change, a business judgment, a post-review step
-     assigned to you, work beyond this list
-   Reply "approve" or "go" for the whole list, or "only S<n>" for one slice and its unfinished
-   dependencies.
+   Design doc · slices in order (parallel groups marked), one line each · shared interfaces and
+   migrations · risky slices · review: raised / accepted / rebutted · each slice ends with a local
+   commit of its own files (no push) · post-review steps (applying migrations…): who, where ·
+   stops and asks you only for: a Critical still contested after 2 rounds, a code review not approved
+   after 2 rounds, a merge conflict between parallel slices, a substantial design change, a
+   foundation change, a business call, a post-review step of yours, work beyond this list
+   Reply "approve" or "go", "only S<n>" for one slice, or tell me what to change.
    ```
-3. **Run the slices back to back**, each through C with these changes:
-   - Slim design doc (T1). Its review skips T2's rewrite-vs-reuse, stale-pattern and unmeasured-claim
-     items (the foundation settled them). While slice N is still being built, N+1's review request
-     says N's design-doc interfaces are the contract, not missing code. Mark a slice `designed` when
-     its design review passes; there is no per-slice T3.
-   - One Orca run for the milestone, **one worker at a time**, no parallel chunks. While the Sonnet
-     worker (or, without Orca, your session) builds N, design and review N+1 — docs only, no source
-     edits. Check messages between steps with `orca orchestration check --wait --types
-     worker_done,escalation,question --timeout-ms 30000 --json` while design work remains, and 120000
-     (Bash timeout 180000) when there is nothing else to do; C-3's three-empty-waits inspection counts
-     only the 120000 waits. Process and `--ack` each batch as in C-3, a worker question first; reviewer
-     completions arrive between waits.
-   - A design-doc change during N's own code review, or an interface of N that changed after N+1 was
-     designed, gets one extra review round on that change only, outside the 2-round count.
-   - When N's code review is approved (C-4; the first review is round 1): run the post-review steps the
-     gate assigned to you (Claude); mark N `done` in `slices.md`; commit locally exactly N's files —
-     the union of every N dispatch's `--files-modified` (without Orca: the files your session listed),
-     checked against `git status --porcelain` — plus N's design doc and `slices.md`, not N+1's doc;
-     release N's worker (C-5 commands, no T5). Later diffs are taken against that commit. Then start
-     N+1's worker. A post-review step assigned to the user: commit N the same way, mark it
-     `done (apply pending: <step>)` and stop; when the user says it's done, continue here with N+1
-     — no new gate.
-   - If Claude implements instead (the user asked), the slices simply run one after another.
-4. **Stopping**: only for the gate's stop items. Start no new worker; let a running slice that the
-   stop doesn't affect finish its code review and commit; wait for running reviewers and save their
-   results; then report with one T5 — done slices, the stop reason with both sides' evidence, which
-   slices are `designed` or `blocked` — and end your turn. A code review not approved after its last
-   round leaves that slice's changes uncommitted; the report asks the user to pick one more round,
-   accept as is (commit, noted in T5), or drop the changes. An F-change stops the affected slice
-   through F-change step 1, sends the `designed` slices it affects back to `todo`, and its approval
-   request is the stop report (no separate T5); F-change step 5 resumes the run.
-5. **Milestone report**: one T5 with a line per slice (files, commit, what review fixed, tests), then a
-   one-line preview of the next milestone. Start it only when the user says so.
+5. **Build**, no further approvals: first add `Approved: <date> (S…)` with the approved slices to the
+   design doc's header. One Orca run for the milestone.
+   - Dependent slices: one Sonnet worker in the milestone worktree takes them one after another
+     (`--terminal <handle>`), each with spec S naming its slice.
+   - Parallel slices start once the slices they depend on are committed: one worker each, at most 3 at
+     once, `worker-start --spec … --worktree new-child --name <slice-id> --base-branch <the milestone
+     worktree's branch> --setup run --agent claude --model sonnet --timeout-ms 120000 --json` (Bash
+     timeout ≥180000). Its code review, `git diff --stat` and definition-of-done re-run happen in its
+     child path.
+   - Each slice gets SKILL step 6 (code review, re-run definition of done, `ponytail-review`; a large
+     diff gets one reviewer per area; fixes to the same worker). The next slice's build doesn't wait
+     for this review unless it depends on that slice.
+   - Approved → commit locally exactly that slice's files: the union of its dispatches'
+     `--files-modified`, checked against `git status --porcelain`. In the milestone worktree the same
+     commit sets its `slices.md` line to `done`. In a child: commit the slice's files there, release its
+     worker, `git cherry-pick` the commit into the milestone worktree, set its `slices.md` line to
+     `done`, `git add` it and `git commit --amend --no-edit`, then `orca worktree rm --worktree
+     path:<child>`. A conflict → `git cherry-pick --abort` and stop.
+   - Post-review steps: Claude's → run them; the user's → mark `done (apply pending: <step>)` and stop;
+     on their "done", continue — no new gate.
+   - Without Orca: hand the user one slice spec at a time; they come back for its review.
+6. **Stopping** (only the gate's stop items): start no new worker; let running slices the stop doesn't
+   touch finish review and commit; wait for running reviewers; release settled workers (never on idle);
+   set the unfinished slice `blocked: <reason>` (its child worktree stays). Report with template T and
+   end your turn — for a Change, its approval request (Change step 3) is the report. A code review not
+   approved after round 2 stays uncommitted: the user picks one more round (a new worker in that
+   slice's worktree), accept as is, or drop it (revert that slice's files; a child:
+   `orca worktree rm --force`); then the run continues with no new gate.
+7. **Report**: one template T for the milestone (a line per slice: files, commit, review fixes,
+   tests), then the next milestone in one line. Start it only when the user says so.
 
-### F-change. Changing the foundation
-Entered two ways: a slice's design, implementation or review shows that a charter line or an accepted
-decision is wrong (or needs a new expensive-to-reverse decision), or the user asks for a change
-directly (`/team foundation change: …`).
-1. **Stop the slice, if one is in progress.** Without Orca: ask the user to stop their `claude --model
-   sonnet` session and list what it changed. In C with a worker running: reply to its pending
-   question, or `orca orchestration send --to dispatch:<ctx_id> --subject "Stop" --body "<msg>" --json`
-   (workers read follow-ups at their checkpoints), with "Stop: the design is changing. Don't edit
-   further; send worker_done with --outcome failed and the files modified so far." Wait for
-   it as in C-3; once the dispatch has settled, `orca orchestration worker-release --dispatch <ctx_id>
-   --json`. If it never settles, leave it running and tell the user — never release on idle (C-5).
-   Set the slice to `blocked: <reason>`. A feature design doc never overrides the foundation.
-2. Write a new decision record (`proposed`) that supersedes the old one (charter: edit it and add a
-   dated change line).
-3. T6 review of the change (only the F-4 checklist items the change touches, ≤2 rounds), then show
-   the change to the user and end your turn.
-4. **Rejected** → set the new record to `rejected`, revert the charter edit, and put the stopped
-   slice back to its previous status; ask the user how to proceed with it.
-   **Approved** → new record `accepted`, old record `superseded by NNN`. In `slices.md`: update the
-   `todo`/`designed` slices it affects; for `done` slices built on the old decision, add a rework slice
-   ("S<k>: move S<n> to NNN") instead of reopening them.
-5. Resume the stopped slice, if any, as a feature design again: revise its design doc to match,
-   starting from what the worktree already contains (list the partial work the stopped worker left),
-   run T6 on it (a fresh ≤2 count), then its T3 gate — and continue as T3 says (C-2 with a new task
-   spec, or the no-Orca hand-off). In a milestone run the approved F-change stands in for that gate:
-   continue at F-M step 3.
+**Launch**: when the user sets `Stage: live`, run one risk review of the auth, customer-data and money
+code built so far (one reviewer per area), turn its findings into fix slices, and add
+`launch risk review: <date>` to the charter.
+
+## Change
+Entered when a design, build or review shows a charter line or accepted decision is wrong (or a new
+expensive decision is needed), or on `/team foundation change: …`.
+1. A slice in progress that the change affects: `orca orchestration send --to dispatch:<ctx_id>
+   --subject "Stop" --body "Stop: the design is changing. Don't edit further; send worker_done with
+   --outcome failed and the files modified so far." --json`, wait for it to settle, release it (never
+   on idle); set the slice `blocked: <reason>`. Without Orca, ask the user to stop their session.
+2. New decision record (`proposed`) superseding the old one; a charter edit gets a dated change line.
+3. Review: reviewer + risk reviewer on what the change touches, ≤2 rounds. Show it; end your turn.
+4. Rejected → record `rejected`, charter edit reverted, slice back to its status. Approved → `accepted`,
+   old record `superseded by NNN`; update affected `todo` slices; `done` slices built on the old
+   decision get a rework slice ("S<k>: move S<n> to NNN").
+5. Resume: revise the affected design-doc sections from what the worktree holds, review that change
+   (≤2 rounds). Inside a milestone run the approved Change is the gate: continue at Build (a slice
+   whose worker was released restarts with a new worker in its worktree). A feature shows gate G
+   again.
