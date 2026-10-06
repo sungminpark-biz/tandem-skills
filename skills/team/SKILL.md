@@ -18,7 +18,9 @@ allowed-tools: Bash, Read, Grep, Glob, Edit, Write
 
 For Claude Code only (another agent reading this folder stops and tells the user). Write to the user in
 their language, including template headings; this file, its templates, Orca notices and subagent
-results being in English changes nothing.
+results being in English changes nothing. Write every subagent prompt (survey, reviewers) and worker
+spec in the user's language and ask for the answer in it, keeping template headings such as
+`## Verdict:` as written: English results are what pull the replies into English.
 
 ## Route
 - `/team foundation …`, a new service, or a re-founding → `foundation.md` "Found".
@@ -158,7 +160,8 @@ Read the design doc first: <absolute path>. Implement <all of it | slice …> in
 Definition of done: <commands>; put the results in worker_done.
 Only touch the doc's scope. Ask (the preamble's `ask`) before deviating or cutting anything; no plan
 mode; don't commit; list every modified file in worker_done --files-modified. ponytail is on: use it
-for how you write the code, but build everything the design specifies.
+for how you write the code, but build everything the design specifies. Write your questions and
+worker_done in <the user's language>.
 ```
 **T — report**: design doc · files · what review changed · code review rounds and fixes ·
 `ponytail-review` applied / rejected · tests (fresh output from your own run) · open issues.
