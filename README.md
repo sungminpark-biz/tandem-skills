@@ -56,7 +56,9 @@ from the one that wrote it.
   tab. Without it, you run the implementation yourself in `claude --model sonnet` and come back for
   the review; design, review and foundation mode work without it.
 - Recommended: the [context7](https://github.com/upstash/context7) plugin, for the design's currency
-  check (`/plugin install context7@claude-plugins-official`, then log in once with `/mcp`)
+  check (`/plugin install context7@claude-plugins-official`, then log in once with `/mcp`). Before
+  designing, `/team` checks that context7 and the project's database MCP are connected and asks you to
+  authenticate one that isn't
 
 Tested with Claude Code 2.1.273–2.1.286 (Claude Opus 5 / 5.5 driver, Sonnet 5.5 workers) and Orca
 1.4.204–1.4.220 on macOS.

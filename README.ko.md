@@ -53,7 +53,8 @@ MCP도, 데몬도, 스크립트도 없습니다. `SKILL.md` 2개와 리뷰어 �
 - [Orca](https://github.com/stablyai/orca) — 터미널 탭이 보이는 감독받는 Sonnet 워커에 필요. 없으면
   `claude --model sonnet`에서 직접 구현하고 리뷰를 받으러 돌아오면 됨. 설계·리뷰·기초 설계 모드는 없어도 동작
 - 권장: [context7](https://github.com/upstash/context7) 플러그인 — 설계의 최신성 확인용
-  (`/plugin install context7@claude-plugins-official` 후 `/mcp`로 한 번 로그인)
+  (`/plugin install context7@claude-plugins-official` 후 `/mcp`로 한 번 로그인). `/team`은 설계 전에
+  context7과 프로젝트의 DB MCP가 연결돼 있는지 확인하고, 인증이 풀려 있으면 인증을 요청함
 
 Claude Code 2.1.273–2.1.286 (Claude Opus 5 / 5.5 드라이버, Sonnet 5.5 워커), Orca 1.4.204–1.4.220,
 macOS에서 테스트.

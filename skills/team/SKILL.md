@@ -43,11 +43,19 @@ results being in English changes nothing.
   started, then check each finding against the code yourself; accept or rebut with evidence.
 - **Code is reviewed by a different model than its author**: Sonnet-written → `model: "opus"`,
   otherwise `model: "sonnet"` (always pass it).
-- **ponytail is mandatory** (preflight: `ponytail:ponytail-review` is in the skill list; missing →
-  give `/plugin marketplace add DietrichGebert/ponytail` + `/plugin install ponytail@ponytail` and
-  stop). The design reviewer applies its ladder to every component; `ponytail-review` runs on every
-  diff. Where ponytail and these rules clash, these rules win: documents are written in full, gates
-  are never skipped, the worker asks before cutting anything the design specifies.
+- **Preflight**, once before the survey:
+  - `ponytail:ponytail-review` is in the skill list; missing → give `/plugin marketplace add
+    DietrichGebert/ponytail` + `/plugin install ponytail@ponytail` and stop.
+  - `claude mcp list` in the worktree: context7 and the project's database MCP (if it has one) must
+    show Connected. **"Needs authentication" is a stop, before any survey or design work**: ask the
+    user to run `/mcp` and log in to that server (or start the login with its `…__authenticate` tool,
+    found with ToolSearch, and give them the URL), end your turn, and continue when they say it's done.
+    Never work around it with web search. Failed or not installed → say so once, go on, and write
+    `not verified: <reason>` where it would have been used.
+- **ponytail is mandatory.** The design reviewer applies its ladder to every component;
+  `ponytail-review` runs on every diff. Where ponytail and these rules clash, these rules win:
+  documents are written in full, gates are never skipped, the worker asks before cutting anything the
+  design specifies.
 - **Rounds**: design review ≤2 and code review ≤2 — round 1 is the first review, round 2 re-checks
   only what changed. Still contested or not approved after round 2 → stop and report both sides.
 - **A design change after review** (a gate edit, a worker question, an accepted `ponytail-review`
