@@ -1,7 +1,8 @@
 # /team: foundation mode
 
-Part of the team skill. Read it only for foundation mode or F-change. Section ids (T1–T6, C-1…)
-and the Shared rules are in `~/.claude/skills/team/SKILL.md`, which is already loaded.
+Part of the team skill. Read it only for foundation mode, F-change or a milestone run (F-M). Section
+ids (T1–T6, C-1…) and the Shared rules are in `~/.claude/skills/team/SKILL.md`, which is already
+loaded.
 
 ## F. Foundation mode
 
@@ -75,7 +76,8 @@ Keep each record to about one page. Write every record's skeleton first, then fi
   file lists) / definition of done / depends on / status.
 - Group the slices into milestones (M1, M2… — one user-visible capability each). A milestone is the
   unit of approval when the service is built (F-M).
-- Status: `todo` → `designed` (its T3 gate, or its milestone gate, approved) → `done` (reported). `blocked: <reason>` when
+- Status: `todo` → `designed` (its T3 gate approved, or in a milestone run its design review passed)
+  → `done` (reported, or in a milestone run its code review approved and committed). `blocked: <reason>` when
   it stops (F-change, design still contested after 2 review rounds, code review not approved after its
   last round);
   back to `designed` when its revised design is approved again.
@@ -114,37 +116,70 @@ design.)
 
 ### F-M. Milestone run — how a pre-launch founded service gets built
 For a charter with `Stage: pre-launch` (no real users or customer data yet). No `Stage:` line → ask the
-user once and add it; until then, and for `Stage: live`, build slice by slice through C with T3. The
-user flips the stage to `live` (a dated charter line) when real users or customer data arrive.
-Entered for a milestone ("M5 진행해", `/team M5`) or a slice of one. One approval covers the
-milestone's remaining slices (a named slice goes first); they then run back to back.
-1. **Plan** (≤10 minutes): from the charter, decisions and `slices.md`, list the milestone's slices in
-   order, one line each: goal / modules / definition of done / depends on / money flow or
-   data-changing migration?
+user once; their answer is the approval, added as a dated charter line. `Stage: live`, or no answer
+yet → build slice by slice through C with T3. **The foundation's own records win**: if a decision
+already sets how milestones are built (approval unit, risk grades, test or DB rules), follow it and use
+F-M only for what it leaves open; changing it is an F-change. A rule this skill can't follow (e.g. a
+reviewer tool it no longer has) is named at the milestone gate. The user flips the stage to `live` when
+real users or customer data arrive; then run one risk review of the auth, customer-data and money code
+built before launch (T6 risk brief, one reviewer per area), turn its findings into fix slices, and
+record `launch risk review: <date>` in the charter.
+Entered for a milestone ("M5 진행해", `/team M5`) or a slice of one. Work that belongs to no milestone
+joins the current one, or becomes a one-slice milestone.
+1. **Plan** (≤10 minutes): from the charter, decisions and `slices.md` (or wherever the foundation
+   keeps its milestone list), list the milestone's slices not yet `done`, in dependency order, one line
+   each: goal / modules / definition of done / depends on / money flow or data-changing migration? A
+   milestone without slice ids gets them here (S<m>a, S<m>b…), written into `slices.md` once the gate is
+   approved. A named slice goes first only if its dependencies are `done`; otherwise the run starts at
+   its first unfinished dependency. Re-running a stopped milestone re-uses `designed` docs after
+   re-checking them against the current code.
 2. **Milestone gate** — show this, then end your turn and wait:
    ```
    ## Milestone M<n> — approval requested
    - Slices, in order: S… — one line each
-   - Shared interfaces and migrations planned: …
+   - Shared interfaces and migrations expected: …
    - Money flows and data-changing migrations (these get the risk reviewer): …
-   - What stops the run and comes back to you: a Critical still contested after 2 rounds, an
-     F-change, a business judgment, or work beyond this list
-   Reply "approve" or "go" to run the whole milestone.
+   - After each slice's code review: local commit of its own files (no push); applying migrations or
+     other post-review steps — by whom and where: …
+   - Without Orca: each slice needs you to run its spec in `claude --model sonnet` and come back
+   - What stops the run and comes back to you: a Critical still contested after 2 rounds, a code
+     review not approved after its last round, an F-change, a business judgment, a post-review step
+     assigned to you, work beyond this list
+   Reply "approve" or "go" for the whole list, or "only S<n>" for one slice and its unfinished
+   dependencies.
    ```
 3. **Run the slices back to back**, each through C with these changes:
-   - Slim design doc (T1). Its T6 review uses T2 without the rewrite-vs-reuse, stale-pattern and
-     unmeasured-claim items — the foundation settled those.
-   - No per-slice T3: a slice with no contested Critical goes straight to C-2. Mark it `designed`.
-   - One Orca run for the milestone and **one worker at a time**. While the Sonnet worker builds slice N,
-     design and review slice N+1 against N's design-doc interfaces (docs only; no source edits). Answer
-     a worker question first: between design and review steps run `orca orchestration check --json`
-     (no `--wait`) or act on Orca's injected notice; reviewers run in the background. When N's code
-     review is approved, re-check N+1's design against N's final interfaces — if one changed, revise
-     the doc and re-review it (its round 2) — release N's worker (C-5 commands, no T5), mark N `done`,
-     and start N+1's worker. Without Orca the user's session builds N while N+1 is designed. If Claude implements instead (the user asked), the
-     slices simply run one after another.
-4. **Stop and ask** only for the items listed in the gate. Otherwise don't interrupt.
-5. **Milestone report**: one T5 with a line per slice (files, what review fixed, tests), then a
+   - Slim design doc (T1). Its review skips T2's rewrite-vs-reuse, stale-pattern and unmeasured-claim
+     items (the foundation settled them). While slice N is still being built, N+1's review request
+     says N's design-doc interfaces are the contract, not missing code. Mark a slice `designed` when
+     its design review passes; there is no per-slice T3.
+   - One Orca run for the milestone, **one worker at a time**, no parallel chunks. While the Sonnet
+     worker (or, without Orca, your session) builds N, design and review N+1 — docs only, no source
+     edits. Check messages between steps with `orca orchestration check --wait --types
+     worker_done,escalation,question --timeout-ms 30000 --json` while design work remains, and 120000
+     (Bash timeout 180000) when there is nothing else to do; C-3's three-empty-waits inspection counts
+     only the 120000 waits. Process and `--ack` each batch as in C-3, a worker question first; reviewer
+     completions arrive between waits.
+   - A design-doc change during N's own code review, or an interface of N that changed after N+1 was
+     designed, gets one extra review round on that change only, outside the 2-round count.
+   - When N's code review is approved (C-4; the first review is round 1): run the post-review steps the
+     gate assigned to you (Claude); mark N `done` in `slices.md`; commit locally exactly N's files —
+     the union of every N dispatch's `--files-modified` (without Orca: the files your session listed),
+     checked against `git status --porcelain` — plus N's design doc and `slices.md`, not N+1's doc;
+     release N's worker (C-5 commands, no T5). Later diffs are taken against that commit. Then start
+     N+1's worker. A post-review step assigned to the user: commit N the same way, mark it
+     `done (apply pending: <step>)` and stop; when the user says it's done, continue here with N+1
+     — no new gate.
+   - If Claude implements instead (the user asked), the slices simply run one after another.
+4. **Stopping**: only for the gate's stop items. Start no new worker; let a running slice that the
+   stop doesn't affect finish its code review and commit; wait for running reviewers and save their
+   results; then report with one T5 — done slices, the stop reason with both sides' evidence, which
+   slices are `designed` or `blocked` — and end your turn. A code review not approved after its last
+   round leaves that slice's changes uncommitted; the report asks the user to pick one more round,
+   accept as is (commit, noted in T5), or drop the changes. An F-change stops the affected slice
+   through F-change step 1, sends the `designed` slices it affects back to `todo`, and its approval
+   request is the stop report (no separate T5); F-change step 5 resumes the run.
+5. **Milestone report**: one T5 with a line per slice (files, commit, what review fixed, tests), then a
    one-line preview of the next milestone. Start it only when the user says so.
 
 ### F-change. Changing the foundation
@@ -171,4 +206,5 @@ directly (`/team foundation change: …`).
 5. Resume the stopped slice, if any, as a feature design again: revise its design doc to match,
    starting from what the worktree already contains (list the partial work the stopped worker left),
    run T6 on it (a fresh ≤2 count), then its T3 gate — and continue as T3 says (C-2 with a new task
-   spec, or the no-Orca hand-off).
+   spec, or the no-Orca hand-off). In a milestone run the approved F-change stands in for that gate:
+   continue at F-M step 3.

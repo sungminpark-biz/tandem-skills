@@ -15,12 +15,13 @@ Claude drafts the design
   → ★ you approve the design ★
   → a Claude Sonnet worker implements (a supervised Orca worker in its own terminal tab)
   → the reviewer checks the diff against the design, Claude re-runs the tests,
-     ponytail-review hunts over-engineering                              (≤3 rounds)
+     ponytail-review hunts over-engineering                    (≤3 rounds, ≤2 pre-launch)
   → the same worker fixes → report
 ```
 
 Starting a whole service from scratch? `/team foundation <service>` first settles the charter, the
-decisions that are expensive to reverse and a slice map — then every slice runs through the loop above.
+decisions that are expensive to reverse and a slice map — then it is built through the loop above, a
+milestone at a time before launch.
 
 No MCP, no daemon, no scripts: two `SKILL.md` files and one reviewer subagent. The implementer runs as
 an [Orca](https://github.com/stablyai/orca) worker; without Orca, you implement the approved design in
@@ -96,7 +97,7 @@ Claude will:
    writes the code with ponytail inside the design's scope, and answer its questions
 5. review the diff (a spec check: missing, unrequested, implemented-but-wrong, each quoting the
    design), re-run every test itself rather than trusting the worker's report, run `ponytail-review`,
-   and dispatch fixes to the same worker until approved (max 3 rounds)
+   and dispatch fixes to the same worker until approved (max 3 rounds; 2 before launch)
 6. report: what the review changed, files touched, tests
 
 A feature that splits cleanly can run as parallel chunks — one Sonnet worker per chunk, with the files
@@ -130,12 +131,13 @@ Claude will:
    ordered by risk, each small enough for one feature run
 4. get the reviewer's and the risk reviewer's adversarial review of the whole foundation
    (contradictions, missing or misplaced decisions, over-engineering against the design caps)
-5. **stop for your approval**, then run S1 as a normal feature
+5. **stop for your approval**, then propose the first milestone
 
 Before launch, build it a milestone at a time: `/team M3` (any milestone or slice name works). You approve the
 milestone's slice list once; its slices then run back to back — slim slice docs, one reviewer (before
 launch the risk reviewer joins only for money flows and data-changing migrations), the Sonnet worker
-building slice N while Claude designs slice N+1 — and you get one report at the end. The run stops
+building slice N while Claude designs slice N+1, a local commit per slice — and you get one report at
+the end. The run stops
 early only for a contested Critical, a foundation change, a business call, or work beyond the list.
 The charter's `Stage:` line decides this; once real users arrive (`Stage: live`), slices go back to
 one approval each.
