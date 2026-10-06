@@ -33,6 +33,7 @@ Sections, 1–2 pages in total:
 - Design caps: the scale the design must hold (users, companies, orders, catalog, regions…) —
   the scale evidence while there is no traffic
 - Not doing: explicit non-goals
+- Stage: pre-launch | live (live = real users or real customer data exist)
 - Open questions
 ```
 Draft from the request, the existing docs and F-0. **Mark every unknown as a question — don't guess
@@ -72,8 +73,11 @@ Keep each record to about one page. Write every record's skeleton first, then fi
   anything larger.
 - Per slice: goal (one line) / decisions exercised (NNN) / rough scope (modules or directories, not
   file lists) / definition of done / depends on / status.
-- Status: `todo` → `designed` (its T3 gate approved) → `done` (T5 reported). `blocked: <reason>` when
-  it stops (F-change, design still contested after 2 review rounds, code review not approved after 3);
+- Group the slices into milestones (M1, M2… — one user-visible capability each). A milestone is the
+  unit of approval when the service is built (F-M).
+- Status: `todo` → `designed` (its T3 gate, or its milestone gate, approved) → `done` (reported). `blocked: <reason>` when
+  it stops (F-change, design still contested after 2 review rounds, code review not approved after its
+  last round);
   back to `designed` when its revised design is approved again.
 - Detail S1–S3 only; the rest are one line each.
 
@@ -100,11 +104,48 @@ both sides' evidence.
   (or: a review failed — why)
 - Contested (your call): …
 - Open questions: …
-Reply "approve" to accept the foundation and start S1. Otherwise tell me what to change.
+Reply "approve" to accept the foundation; I'll then propose the first milestone. Otherwise tell me what
+to change.
 ```
-End your turn and wait. Approved ("approve" / "go" / "OK") → set the decision records to `accepted`, then start S1 at **C-1**:
-Claude writes S1's design, runs its review and its own T3 gate. (Without Orca, the hand-off happens
-after that gate, as in section 0 — never hand `slices.md` to an implementer as a design.)
+End your turn and wait. Approved ("approve" / "go" / "OK") → set the decision records to `accepted`, then build
+the first milestone: pre-launch → F-M; live → S1 at **C-1** with its own T3 gate. (Without Orca, each
+slice's implementation is handed off as in section 0 — never hand `slices.md` to an implementer as a
+design.)
+
+### F-M. Milestone run — how a pre-launch founded service gets built
+For a charter with `Stage: pre-launch` (no real users or customer data yet). No `Stage:` line → ask the
+user once and add it; until then, and for `Stage: live`, build slice by slice through C with T3. The
+user flips the stage to `live` (a dated charter line) when real users or customer data arrive.
+Entered for a milestone ("M5 진행해", `/team M5`) or a slice of one. One approval covers the
+milestone's remaining slices (a named slice goes first); they then run back to back.
+1. **Plan** (≤10 minutes): from the charter, decisions and `slices.md`, list the milestone's slices in
+   order, one line each: goal / modules / definition of done / depends on / money flow or
+   data-changing migration?
+2. **Milestone gate** — show this, then end your turn and wait:
+   ```
+   ## Milestone M<n> — approval requested
+   - Slices, in order: S… — one line each
+   - Shared interfaces and migrations planned: …
+   - Money flows and data-changing migrations (these get the risk reviewer): …
+   - What stops the run and comes back to you: a Critical still contested after 2 rounds, an
+     F-change, a business judgment, or work beyond this list
+   Reply "approve" or "go" to run the whole milestone.
+   ```
+3. **Run the slices back to back**, each through C with these changes:
+   - Slim design doc (T1). Its T6 review uses T2 without the rewrite-vs-reuse, stale-pattern and
+     unmeasured-claim items — the foundation settled those.
+   - No per-slice T3: a slice with no contested Critical goes straight to C-2. Mark it `designed`.
+   - One Orca run for the milestone and **one worker at a time**. While the Sonnet worker builds slice N,
+     design and review slice N+1 against N's design-doc interfaces (docs only; no source edits). Answer
+     a worker question first: between design and review steps run `orca orchestration check --json`
+     (no `--wait`) or act on Orca's injected notice; reviewers run in the background. When N's code
+     review is approved, re-check N+1's design against N's final interfaces — if one changed, revise
+     the doc and re-review it (its round 2) — release N's worker (C-5 commands, no T5), mark N `done`,
+     and start N+1's worker. Without Orca the user's session builds N while N+1 is designed. If Claude implements instead (the user asked), the
+     slices simply run one after another.
+4. **Stop and ask** only for the items listed in the gate. Otherwise don't interrupt.
+5. **Milestone report**: one T5 with a line per slice (files, what review fixed, tests), then a
+   one-line preview of the next milestone. Start it only when the user says so.
 
 ### F-change. Changing the foundation
 Entered two ways: a slice's design, implementation or review shows that a charter line or an accepted

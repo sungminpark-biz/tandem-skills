@@ -42,7 +42,7 @@ to be Orca-managed: `orca worktree current --json` returns `"ok": true` (`orca s
 it succeeds anywhere). No Orca → still run C-1 up to and including the approval gate, then give the
 user the C-2 spec text to run in `claude --model sonnet` in this repo — with "ask me (the user) here"
 in place of the Orca `ask` command and "when done, list the modified files and the definition-of-done
-output" in place of `worker_done` — and have them come back here for C-4. There, fixes go back to that session as an "Apply review" list (or Claude applies them if
+output" in place of `worker_done` — and have them come back here for C-4 (in a milestone run, every slice is handed off this way, one at a time). There, fixes go back to that session as an "Apply review" list (or Claude applies them if
 the user says so), and C-5's Orca commands are skipped.
 
 **When a feature doesn't fit** (checked while designing):
@@ -57,10 +57,11 @@ the user says so), and C-5's Orca commands are skipped.
 Design and code review belong to Claude (the driver); code writing belongs to a Claude Sonnet worker
 in Orca (C-2), unless the user asks Claude to implement. **A design goes to implementation only after
 the adversarial review (T6) → Claude's rebuttal/acceptance and revision** (design review ≤2 rounds per
-design; code review ≤3 rounds). Commit only when the user asks. Never
+design; code review ≤3 rounds, ≤2 when the charter says `Stage: pre-launch`). Commit only when the user asks. Never
 run verification that writes to production databases or external services. The user is involved
 only at: **the charter questions and gate, the foundation approval, every feature design's approval
-gate (mandatory), foundation changes**, and when a business judgment (cost, customer impact,
+gate (mandatory; for a pre-launch founded service, one gate per milestone — `foundation.md` F-M),
+foundation changes**, and when a business judgment (cost, customer impact,
 operating policy) is split. Otherwise don't interrupt them. Language: see the top of this file.
 Scratch files (prompts, reviews) go to `/tmp/team/<slug>/` so git stays clean;
 `<slug>` is a short kebab-case name for the task, also used in the design doc filename.
@@ -104,7 +105,8 @@ Overall flow:
 ```
 [foundation, once per service]
 charter (with the user) → ★ charter OK ★ → decision records + slice map → adversarial review (T6)
-→ Claude rebut/accept (≤2) → ★ foundation approval ★ → S1, S2, … each as one feature run
+→ Claude rebut/accept (≤2) → ★ foundation approval ★ → milestones (pre-launch: ★ one gate per
+  milestone ★, then its slices back to back — F-M; live: each slice as one feature run)
 
 [feature, once per slice or task]
 Claude design → adversarial review (T6: reviewer, + risk reviewer for risky changes)
@@ -145,7 +147,12 @@ above + what you already know), then fill it in with Edit as you investigate.** 
 calls. If this round has a defined implementation slice, detail only that slice and list the rest as
 one-liners under a "Follow-ups" section. If the design stops fitting (section 0), stop and report that
 instead of writing a bigger doc. A source you can't reach → `not verified: <reason>`. Ponytail shapes
-what the design proposes, not the document: every section above is requested, so write each in full.
+what the design proposes, not the document: every section above is requested, so write each in full
+(except in the slim slice doc below).
+**A slice inside a milestone run (F-M)** writes only Goal, Foundation, Scope of change, Chunks,
+Interfaces, Implementation order, Definition of done and Do-not-touch — the foundation already
+answers alternatives, currency, scale and what is not built; add those only for a framework or
+platform feature the foundation doesn't cover. Skeleton within 5 minutes, ≤25 tool calls.
 
 ### T2. Adversarial design review (checklist + output format)
 Read the design doc **in full** and verify it against the repository directly. The goal is to
@@ -178,7 +185,8 @@ Output format (reviewers are read-only and return it as text; Claude saves each 
 
 ### T3. Approval gate — always stop before implementing
 Once the design is final, **do not start implementing**. Show the user this summary, then **end your
-turn and wait for their answer**:
+turn and wait for their answer** (in a milestone run, the milestone gate is this gate for every slice
+in it — F-M):
 ```
 ## Design finalized — approval requested
 - Document: docs/design/….md   (slice S<n>, if there is a foundation)
@@ -232,16 +240,20 @@ Reply "approve" or "go" to proceed. Otherwise tell me what to change.
 ```
 Inside Orca, also update the card:
 `orca worktree set --worktree active --comment "implemented + reviewed: <feature>" --json`.
-Start the next slice only when the user says so.
+Start the next slice only when the user says so (inside a milestone run, the next slice starts on its
+own and one T5 covers the milestone — F-M).
 
 ### T6. Adversarial review — read-only Claude reviewers (C-1, C-4, F-4, F-change)
 A reviewer with a fresh context catches what the designer missed. More reviewers of the same kind
 mostly find the same things, so a second one is added only where it looks from a different angle:
 - **Reviewer** — always.
 - **Risk reviewer** — in parallel, when the change touches payments, a database schema or migration,
-  customer data or auth, and for every foundation review (F-4, F-change). Its extra brief: data
-  integrity, migration and rollback, double-processing and races, the state left after a failure,
-  security and privacy. The user can also ask for one or two reviewers explicitly.
+  customer data or auth — and for every foundation review (F-4, F-change). Only when the charter says
+  `Stage: pre-launch` is it narrowed to money flows and migrations that change or drop existing data;
+  no charter or no `Stage:` line means the full rule.
+  Its extra brief: data integrity, migration and rollback, double-processing and races, the state
+  left after a failure, security and privacy. The user can also ask for one or two reviewers
+  explicitly.
 
 **1. One request file.** Write `/tmp/team/<slug>/<name>-req.md` once: the absolute paths to review,
 every fact you already measured (so no reviewer spends turns re-deriving it), the checklist, and the
@@ -253,7 +265,8 @@ not edit files; the requested format overrides any style rules injected into you
 don't pass `run_in_background`. For code, pick the reviewer's model as in C-4. Prompt = the
 request file's contents (+ the risk brief for the risk reviewer) plus: "Review only; do not edit
 files. Do not touch databases or external services (no MCP write tools, no integration tests that
-write, no deploys)." It starts with a fresh context, so the prompt must be self-contained.
+write, no deploys). Stop after 30 tool calls (60 for a foundation review) and answer in the format
+with what you have, listing what you didn't check." It starts with a fresh context, so the prompt must be self-contained.
 
 **2. Wait for every reviewer you started.** When each returns: check every item against the code
 yourself, accept (edit the doc) or rebut (with evidence), then go on. A reviewer that fails or
@@ -262,7 +275,7 @@ its review **failed**; say so at the gate (designs) or in T5 (code) — never re
 
 **3. Next rounds**, via SendMessage to the same agent(s). Designs: round 2 (≤2 total) goes only to
 the reviewer whose Critical you rebutted and who needs to see the rebuttal. Code: after each "Apply
-review" (≤3 rounds, C-4), every reviewer that asked for changes re-checks the new diff.
+review" (C-4's round limit), every reviewer that asked for changes re-checks the new diff.
 ```
 Accepted: <item> → doc/diff changed: <where>
 Rebutted: <item> — evidence: <file:line / result>
@@ -288,10 +301,13 @@ Orca commands below follow Orca's bundled guide (`orca skills get orchestration`
 that guide disagree on your version, the guide wins.
 
 ### C-1. Design doc + adversarial review (T6, mandatory)
-If `docs/design/foundation/` exists, read the charter, the accepted decisions and `slices.md` first.
+If `docs/design/foundation/` exists, read the charter, the accepted decisions and `slices.md` first;
+when the charter says `Stage: pre-launch`, a milestone or a slice of one runs as a milestone run
+(`foundation.md` F-M).
 The task should be one slice whose dependencies are `done`; if it isn't in `slices.md`, add it as a
 slice first (or F-change if it needs a new expensive decision). A dependency not `done` yet → don't
-design this slice; tell the user which slice has to come first and stop. Inventory existing assets and measure
+design this slice; tell the user which slice has to come first and stop (in a milestone run, a
+dependency whose worker is still building may be designed against — F-M step 3). Inventory existing assets and measure
 scale from read-only sources, then write the design doc (T1). Then the adversarial review: T6 with
 the request `/tmp/team/<slug>/design-review-req.md` (T2 checklist + T2 output format + the design
 doc's absolute path + the facts you measured).
@@ -299,7 +315,8 @@ Check every Critical/Missing/Ambiguous item **against the code yourself**, then 
 doc) or rebut (with evidence). If Critical items remain and a reviewer needs to see the rebuttal, run
 one more round (T6 step 3) — 2 rounds total. Still contested after 2 → do not implement;
 set the slice `blocked` and report both sides to the user. No Critical items left → **the approval
-gate (T3)**: end your turn and wait. Do not go to C-2 before approval.
+gate (T3)**: end your turn and wait. Do not go to C-2 before approval. (In a milestone run the
+milestone gate already covers this slice: go straight to C-2.)
 
 ### C-2. Run + Task + Sonnet worker
 **The user asked Claude to implement** ("너가 직접 구현해", "you implement it") → skip the Orca run,
@@ -390,8 +407,8 @@ so; never report a failed pass as "lean already". It returns a delete-list only 
 `stdlib:` / `native:` / `yagni:` / `shrink:` per line). Judge each item like any finding: accept it
 only if it keeps the design's interfaces, the definition of done and the things ponytail itself never
 cuts (trust-boundary validation, data-loss handling, security, accessibility). An accepted item that
-changes an interface in the design doc → revise the doc first (show T3 again if it is substantial).
-Merge accepted items into the same "Apply review" spec; they count toward the same ≤3 rounds.
+changes an interface in the design doc → revise the doc first (show T3 again if it is substantial; in a milestone run, stop and ask instead — F-M step 4).
+Merge accepted items into the same "Apply review" spec; they count toward the same round limit.
 
 Changes needed → reuse the Sonnet worker that wrote the chunk (or, if Claude implemented, Claude
 applies them and the reviewer re-checks via SendMessage). Decide the reuse before acking the old
@@ -401,7 +418,8 @@ orca orchestration worker-show --dispatch <ctx_id> --json                  # the
 orca orchestration worker-start --spec "Apply review: <per-item instructions, file:line>" --terminal <handle> --worktree current --json
 orca orchestration check --ack <deliveryId> --json                         # then wait on the NEW dispatch
 ```
-→ C-3. At most 3 rounds. Still not approved after 3 → set the slice `blocked`, report the remaining
+→ C-3. At most 3 rounds (2 when `Stage: pre-launch`); later rounds re-check only what changed. Still not approved
+after the last round → set the slice `blocked`, report the remaining
 items and both sides' reasoning to the user, and still do the C-5 cleanup.
 
 ### C-5. Wrap up

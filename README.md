@@ -132,6 +132,14 @@ Claude will:
    (contradictions, missing or misplaced decisions, over-engineering against the design caps)
 5. **stop for your approval**, then run S1 as a normal feature
 
+Before launch, build it a milestone at a time: `/team M3` (any milestone or slice name works). You approve the
+milestone's slice list once; its slices then run back to back — slim slice docs, one reviewer (before
+launch the risk reviewer joins only for money flows and data-changing migrations), the Sonnet worker
+building slice N while Claude designs slice N+1 — and you get one report at the end. The run stops
+early only for a contested Critical, a foundation change, a business call, or work beyond the list.
+The charter's `Stage:` line decides this; once real users arrive (`Stage: live`), slices go back to
+one approval each.
+
 Foundation docs are canonical: feature designs cite them and never override them. If a slice proves a
 decision wrong, the slice stops, a superseding decision record is written, reviewed and approved, and
 then the slice resumes.
