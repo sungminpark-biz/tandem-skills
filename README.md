@@ -143,10 +143,13 @@ approve once. The slices are then built back to back: one Sonnet worker takes de
 after another, independent slices get their own worker in a child worktree in parallel, and every
 slice gets its code review and a local commit. You get one report at the end; the run stops early
 only for a contested Critical, a code review not approved in 2 rounds, a foundation change, a
-business call, or work beyond the list. A foundation that already has its own rules for this (an
-approval unit, risk grades) keeps them.
+business call, or work beyond the list.
 
-Foundation docs are canonical: feature designs cite them and never override them. If a slice proves a
+Foundation docs are canonical for what gets built, and for the safety rules that follow from it (say,
+"one shared production database, so trial every write first"): feature designs cite them and never
+override them. How the team works — who implements, approvals, reviews, reports — always follows the
+skill, so an update to the skill reaches every service; a foundation line that tries to set it is named
+at the gate and not followed. If a slice proves a
 decision wrong, the slice stops, a superseding decision record is written, reviewed and approved, and
 then the slice resumes.
 

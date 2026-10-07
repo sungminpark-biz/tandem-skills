@@ -1,8 +1,10 @@
 # /team: founded services
 
 Part of the team skill: its Rules, Orca worker commands and templates (D, R, C, S, T) are in
-`SKILL.md`, already loaded. `docs/design/foundation/` is **canonical**: design docs cite it and never
-override it; it changes only through **Change**.
+`SKILL.md`, already loaded. `docs/design/foundation/` is **canonical** for what gets built: design docs
+cite it and never override it; it changes only through **Change**. How the team works — who
+implements, approval unit, review rounds and reviewers, reports — belongs to this skill, not to the
+foundation, so a skill update reaches every service.
 ```
 docs/design/foundation/
   charter.md                what the service is — the user's decisions
@@ -25,7 +27,9 @@ docs/design/foundation/
    questions; end your turn. Go on only on "OK" / "approve" / "go".
 3. **Decisions**: only what is expensive to reverse once code or data depend on it. Check: data model
    and source of truth, identity/auth, tenancy and permissions, external integrations, money and
-   document flow, runtime and background work, observability. One page each:
+   document flow, runtime and background work, observability. Not a decision: how the team works
+   (above); a safety rule that follows from a decision is (e.g. one shared production database → trial
+   every write first). One page each:
    ```
    # NNN <title>
    Status: proposed | accepted | superseded by NNN | rejected
@@ -53,9 +57,11 @@ docs/design/foundation/
 
 ## Milestone run
 Entered for a milestone ("M5 진행해", `/team M5`) or a slice (that slice plus its unfinished
-dependencies). **The foundation's own records win**: where a decision already sets the approval unit,
-risk grades or test and DB rules, follow it and use this only for what it leaves open; a rule this
-skill can't follow is named at the gate; changing one is a Change.
+dependencies). **The foundation wins on what to build and on the safety rules that follow from its
+decisions** (extra risk areas, test and database rules). **How the team works follows this skill**: a
+foundation line that sets the implementer, approval unit, review procedure or reports is not followed,
+and the gate names it ("015: Claude implements → not followed: Sonnet worker") so the user can drop it
+with a Change. The user saying so in the request ("you implement it") still wins.
 1. **Plan** (≤10 minutes, parallel Explore agents per area): the milestone's slices not yet `done`, in
    dependency order, with ids (S<m>a, S<m>b… if missing). Slices with no dependency between them and
    no shared source files are **parallel**. A milestone design doc already exists (a stopped run) →
