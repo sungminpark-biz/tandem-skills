@@ -162,8 +162,8 @@ then the slice resumes.
 ## Design quality bar
 
 The design step is held to four rules, and the adversarial review checks each of them:
-reuse before rewrite (inventory existing assets first), current as of today's date (cite the
-platform's current recommendation; prefer platform primitives over hand-rolled auth/queues/cron),
+reuse before rewrite (inventory existing assets first), current as of today's date (anything new the design picks is searched on the web and in official
+docs, not recalled — the model's memory has gaps; cite the platform's current recommendation; prefer platform primitives over hand-rolled auth/queues/cron),
 measured not guessed (read-only DB/infra numbers; a new service uses its charter's design caps), and
 no over-engineering (every component justified against measured scale; the doc lists what was
 deliberately not built).

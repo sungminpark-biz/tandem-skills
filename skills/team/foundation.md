@@ -34,7 +34,8 @@ docs/design/foundation/
    # NNN <title>
    Status: proposed | accepted | superseded by NNN | rejected
    Context (charter lines, measured facts) · Decision · Options considered (reuse / platform primitive
-   / simplest — why not) · Currency: current recommended way, dated source · Consequences ·
+   / simplest / what today's search found — why not) · Currency: searched, not recalled — sources with
+   dates · Consequences ·
    Revisit when (an observable signal tied to the caps) · Not built
    ```
 4. **Milestone map** → `slices.md`. A milestone is one user-visible capability made of 2–4 slices; a
@@ -62,7 +63,8 @@ decisions** (extra risk areas, test and database rules). **How the team works fo
 foundation line that sets the implementer, approval unit, review procedure or reports is not followed,
 and the gate names it ("015: Claude implements → not followed: Sonnet worker") so the user can drop it
 with a Change. The user saying so in the request ("you implement it") still wins.
-1. **Plan** (≤10 minutes, parallel Explore agents per area): the milestone's slices not yet `done`, in
+1. **Plan** (≤10 minutes, parallel Explore agents per area, plus SKILL step 1's search of today's
+   options when a slice picks something new): the milestone's slices not yet `done`, in
    dependency order, with ids (S<m>a, S<m>b… if missing). Slices with no dependency between them and
    no shared source files are **parallel**. A milestone design doc already exists (a stopped run) →
    re-check it against the current code; slices its `Approved:` line lists that are still valid go to

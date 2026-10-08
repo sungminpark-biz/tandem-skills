@@ -72,7 +72,10 @@ spec in the user's language and ask for the answer in it, keeping template headi
 
 ## Feature
 1. **Survey** (≤10 minutes): existing assets, call sites, measured scale from read-only sources.
-   Broad codebase → parallel Explore agents, one per area.
+   Broad codebase → parallel Explore agents, one per area. If the design picks something new (a tool,
+   service, library or approach), one more agent searches today's options for it on the web and in
+   official docs (context7): the model's memory has gaps even before its cutoff, so the choice rests on
+   what was found, not what was recalled.
 2. **Design doc** `docs/design/<YYYYMMDD>-<slug>.md` (template D). Skeleton first, then fill in.
 3. **Design review** (template R): write `/tmp/team/<slug>/<name>-req.md` (paths, measured facts,
    template R) and start the reviewer (+ risk reviewer) in one message. Round 2 goes only to a
@@ -128,16 +131,16 @@ spec in the user's language and ask for the answer in it, keeping template headi
 Goal (one paragraph) · Foundation refs (if any) · Scope: files to create/modify · Interfaces, schemas,
 signatures · Implementation order · Definition of done: commands that must pass · Do-not-touch ·
 Not doing (and why)
-+ only when adopting a framework/platform feature: the current recommended way, with a dated source
++ for anything new it picks: the options found today and why this one, with sources and dates
 ```
 **R — design review request**
 ```
 Break the design; list only problems, each with evidence (file:line / behaviour / contract). Check:
 files and call sites exist; signatures match the code; regressions, migrations, rollback; definition of
 done runnable; money/data: double-processing, races, state on failure; anything the implementer would
-have to guess; something existing already does this; hand-rolled what the platform already provides
-(auth, queues, cron, rate limits); ponytail ladder on every component (needed at
-all? reuse? stdlib? native? one line?); contradicts the foundation.
+have to guess; something in the repo, or available today, already does this (cite source and date);
+hand-rolled what the platform already provides (auth, queues, cron, rate limits); ponytail ladder on
+every component (needed at all? reuse? stdlib? native? one line?); contradicts the foundation.
 ## Critical (evidence required)  ## Missing  ## Ambiguous (questions)  ## Cut (ponytail)
 ## Verdict: needs revision | ready
 ```
