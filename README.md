@@ -10,8 +10,8 @@ Like a tandem bicycle: one rider steers, the other pedals. Open Claude Code in y
 ```
 Claude drafts the design
   → a read-only Claude reviewer tries to break it (reads the repo, cites file:line);
-     a second, risk-focused reviewer joins for money, auth, data-changing migrations and
-     customer data
+     a second, risk-focused reviewer joins for money and auth (after launch also
+     data-changing migrations and customer data)
   → Claude rebuts or accepts each point with evidence, revises the doc   (≤2 rounds)
   → ★ you approve the design ★
   → a Claude Sonnet worker implements (a supervised Orca worker in its own terminal tab)
@@ -91,18 +91,19 @@ Inside an Orca worktree, in Claude Code:
 ```
 
 Claude will:
-1. survey the code (parallel Explore agents on a broad codebase), then write
+1. survey the code (parallel Explore agents on Sonnet for a broad codebase), then write
    `docs/design/<date>-<slug>.md` (scope, signatures, order, definition of done, what is not built)
 2. get an adversarial review from the read-only `team-reviewer` subagent (critical / missing /
-   ambiguous, and what ponytail's ladder would cut, with evidence) — plus a risk reviewer for money,
-   auth, data-changing migrations and customer data — check each item against the code, and revise the
-   doc or rebut
+   ambiguous, and what ponytail's ladder would cut, with evidence) — plus a risk reviewer for money and
+   auth, and after launch for data-changing migrations and customer data — check each item against the
+   code, and revise the doc or rebut
 3. **stop and show you a summary — nothing is implemented until you say "approve"**
 4. spawn a Claude Sonnet worker in Orca (`worker-start --spec … --agent claude --model sonnet`), which
    writes the code with ponytail inside the design's scope, and answer its questions
 5. review the diff (a spec check: missing, unrequested, implemented-but-wrong, each quoting the
-   design), re-run every test itself rather than trusting the worker's report, run `ponytail-review`,
-   and dispatch fixes to the same worker until approved (max 2 rounds)
+   design), re-run the definition of done itself rather than trusting the worker's report, run
+   `ponytail-review`, and dispatch fixes to the same worker until approved (max 2 rounds), then run
+   the full test suites once
 6. report: what the review changed, files touched, tests
 
 Say "you implement it" and Claude writes the
@@ -142,16 +143,17 @@ doc for the whole milestone (shared interfaces first, then each slice), gets it 
 approve once. The slices are then built back to back: one Sonnet worker takes dependent slices one
 after another, independent slices get their own worker in a child worktree in parallel, and every
 slice gets its code review and a local commit. You get one report at the end; the run stops early
-only for a contested Critical, a code review not approved in 2 rounds, a foundation change, a
-business call, or work beyond the list.
+only for a contested Critical, a code review not approved in 2 rounds, tests still failing after a
+fix, a foundation change, a business call, or work beyond the list.
 
 Foundation docs are canonical for what gets built, and for the safety rules that follow from it (say,
-"one shared production database, so trial every write first"): feature designs cite them and never
-override them. How the team works — who implements, approvals, reviews, reports — always follows the
-skill, so an update to the skill reaches every service; a foundation line that tries to set it is named
-at the gate and not followed. If a slice proves a
-decision wrong, the slice stops, a superseding decision record is written, reviewed and approved, and
-then the slice resumes.
+"messages go only to test numbers until launch"): feature designs cite them and never override them.
+Before launch the data is test data, so these rules stay cheap: each states what it costs per slice,
+and one that guards only test data is named at the gate and not followed. How the team works — who
+implements, approvals, reviews, how often tests run, reports — always follows the skill, so an update
+to the skill reaches every service; a foundation line that tries to set it is named at the gate and
+not followed. If a slice proves a decision wrong, the slice stops, a superseding decision record is
+written, reviewed and approved, and then the slice resumes.
 
 ### Just a debate
 
@@ -179,6 +181,8 @@ deliberately not built).
 Other details that came out of real runs:
 - The design method says "write the skeleton first, then fill in" and caps the survey at 10 minutes —
   Opus at high effort will otherwise explore for 20+ minutes before writing a word.
+- Tests run narrow per slice (what the change touches, once) and full once at the end: in real runs,
+  full suites after every slice and "3 times in a row" checks took a large share of a milestone.
 - The reviewer is a custom subagent, not the built-in `Plan` agent: `Plan` is one-shot (no agent ID),
   so a second review round can't reach it, and it skips `CLAUDE.md`.
 - Orca types its `You have N orchestration message…` notices into the driver's terminal as user turns;

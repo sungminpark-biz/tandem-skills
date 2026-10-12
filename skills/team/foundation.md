@@ -3,8 +3,8 @@
 Part of the team skill: its Rules, Orca worker commands and templates (D, R, C, S, T) are in
 `SKILL.md`, already loaded. `docs/design/foundation/` is **canonical** for what gets built: design docs
 cite it and never override it; it changes only through **Change**. How the team works — who
-implements, approval unit, review rounds and reviewers, reports — belongs to this skill, not to the
-foundation, so a skill update reaches every service.
+implements, approval unit, review rounds and reviewers, how often and how widely tests run, reports —
+belongs to this skill, not to the foundation, so a skill update reaches every service.
 ```
 docs/design/foundation/
   charter.md                what the service is — the user's decisions
@@ -20,7 +20,7 @@ docs/design/foundation/
    ```
    One line: what, for whom · Who does what: core flows · Success / failure: observable signals ·
    Design caps: the scale to hold · Not doing · Stage: pre-launch | live (live = real users or
-   customer data exist) · Open questions
+   customer data exist — in this service, or in another product on its database) · Open questions
    ```
    Every unknown is a question, never a guessed business decision: ask in batches of up to 4
    (AskUserQuestion, recommended option first). **Gate**: show one line, caps, non-goals, open
@@ -28,25 +28,29 @@ docs/design/foundation/
 3. **Decisions**: only what is expensive to reverse once code or data depend on it. Check: data model
    and source of truth, identity/auth, tenancy and permissions, external integrations, money and
    document flow, runtime and background work, observability. Not a decision: how the team works
-   (above); a safety rule that follows from a decision is (e.g. one shared production database → trial
-   every write first). One page each:
+   (above); a safety rule that follows from a decision is. Before launch (SKILL Rules) the data is test
+   data: a safety rule stays only where a mistake reaches users, money, secrets or an external service
+   (messages, paid APIs); everywhere else take the cheaper option and write `Revisit when: launch`
+   (e.g. one shared database before launch → apply and fix forward, no trial runs). One page each:
    ```
    # NNN <title>
    Status: proposed | accepted | superseded by NNN | rejected
    Context (charter lines, measured facts) · Decision · Options considered (reuse / platform primitive
    / simplest / what today's search found — why not) · Currency: searched, not recalled — sources with
-   dates · Consequences ·
+   dates · Consequences (a safety rule: its estimated cost per slice, and the cheaper option) ·
    Revisit when (an observable signal tied to the caps) · Not built
    ```
 4. **Milestone map** → `slices.md`. A milestone is one user-visible capability made of 2–4 slices; a
    slice is what one reviewer can review in one pass (roughly ≤30 files, ≤1 hour of worker time).
    M1 is a walking skeleton: the thinnest end-to-end path touching every decision once, outside
    production. Then order by risk (least-proven decision first), then value. Per slice: goal /
-   decisions / scope (modules) / definition of done / depends on / risk (money, auth, data-changing
-   migration). Status `todo` → `done` (reviewed and committed); `blocked: <reason>`. Detail M1 only.
+   decisions / scope (modules) / definition of done (SKILL Rules: Tests) / depends on / risk (money,
+   auth; data-changing migration, except before launch). Status `todo` → `done` (reviewed and
+   committed); `blocked: <reason>`. Detail M1 only.
 5. **Review**: reviewer + risk reviewer with template R plus: contradictions (decision vs charter,
    decision vs decision, slice vs decision); a missing expensive decision, or a cheap one listed;
-   over-building against the caps; M1 really touches every decision; a slice too big. ≤2 rounds.
+   over-building against the caps; a safety rule whose cost the stage doesn't justify; M1 really
+   touches every decision; a slice too big. ≤2 rounds.
 6. **Gate**, then end your turn:
    ```
    ## Foundation ready — approval requested
@@ -59,10 +63,13 @@ docs/design/foundation/
 ## Milestone run
 Entered for a milestone ("M5 진행해", `/team M5`) or a slice (that slice plus its unfinished
 dependencies). **The foundation wins on what to build and on the safety rules that follow from its
-decisions** (extra risk areas, test and database rules). **How the team works follows this skill**: a
-foundation line that sets the implementer, approval unit, review procedure or reports is not followed,
-and the gate names it ("015: Claude implements → not followed: Sonnet worker") so the user can drop it
-with a Change. The user saying so in the request ("you implement it") still wins.
+decisions** (extra risk areas, database rules, what a test must check). **How the team works follows
+this skill**: a foundation line that sets the implementer, approval unit, review procedure, test runs
+or reports is not followed. Before launch, neither is a safety rule that guards only test data (not
+users, money, secrets or external services). The gate names each such line ("015: Claude implements →
+not followed: Sonnet worker"; a safety rule with its cost per slice) and the milestone design doc
+records it; the user keeps one by saying so, or drops it for good with a Change. The user saying so in
+the request ("you implement it") still wins.
 1. **Plan** (≤10 minutes, parallel Explore agents per area, plus SKILL step 1's search of today's
    options when a slice picks something new): the milestone's slices not yet `done`, in
    dependency order, with ids (S<m>a, S<m>b… if missing). Slices with no dependency between them and
@@ -70,18 +77,22 @@ with a Change. The user saying so in the request ("you implement it") still wins
    re-check it against the current code; slices its `Approved:` line lists that are still valid go to
    Build with no new gate; any other slice, or a substantial change, goes through review and the gate.
 2. **One milestone design doc** `docs/design/<YYYYMMDD>-m<n>-<slug>.md`: shared interfaces and
-   migrations first, then template D per slice. Skip what the foundation already settled.
+   migrations first, then template D per slice, then the full-suite commands for the milestone's end
+   and the foundation lines it doesn't follow. Skip what the foundation already settled.
 3. **One review** (template R; the risk reviewer if any slice is risky; a big milestone gets one
    reviewer per group of slices), ≤2 rounds.
 4. **Milestone gate**, then end your turn:
    ```
    ## Milestone M<n> — approval requested
    Design doc · slices in order (parallel groups marked), one line each · shared interfaces and
-   migrations · risky slices · review: raised / accepted / rebutted · each slice ends with a local
-   commit of its own files (no push) · post-review steps (applying migrations…): who, where ·
+   migrations · risky slices · review: raised / accepted / rebutted · foundation lines not followed,
+   and why · each slice ends with a local commit of its own files (no push; a fix from the full
+   suites or an `after` command gets one more) · full suites at the end ·
+   post-review steps (applying migrations…): who, where ·
    stops and asks you only for: a Critical still contested after 2 rounds, a code review not approved
-   after 2 rounds, a merge conflict between parallel slices, a substantial design change, a
-   foundation change, a business call, a post-review step of yours, work beyond this list
+   after 2 rounds, a merge conflict between parallel slices, full suites or an `after` command still
+   failing after one fix, a substantial design change, a foundation change, a business call, a
+   post-review step of yours, work beyond this list
    Reply "approve" or "go", "only S<n>" for one slice, or tell me what to change.
    ```
 5. **Build**, no further approvals: first add `Approved: <date> (S…)` with the approved slices to the
@@ -102,8 +113,11 @@ with a Change. The user saying so in the request ("you implement it") still wins
      worker, `git cherry-pick` the commit into the milestone worktree, set its `slices.md` line to
      `done`, `git add` it and `git commit --amend --no-edit`, then `orca worktree rm --worktree
      path:<child>`. A conflict → `git cherry-pick --abort` and stop.
-   - Post-review steps: Claude's → run them; the user's → mark `done (apply pending: <step>)` and stop;
-     on their "done", continue — no new gate.
+   - Post-review steps: Claude's → run them, then the commands marked `after <step>`; the user's → mark
+     `done (apply pending: <step>)` and stop; on their "done", run the marked commands and continue —
+     no new gate. A failure: SKILL Rules: Tests.
+   - End of the run, every approved slice committed: Claude runs the full suites once; a failure:
+     SKILL Rules: Tests.
    - Without Orca: hand the user one slice spec at a time; they come back for its review.
 6. **Stopping** (only the gate's stop items): start no new worker; let running slices the stop doesn't
    touch finish review and commit; wait for running reviewers; release settled workers (never on idle);
@@ -111,12 +125,17 @@ with a Change. The user saying so in the request ("you implement it") still wins
    end your turn — for a Change, its approval request (Change step 3) is the report. A code review not
    approved after round 2 stays uncommitted: the user picks one more round (a new worker in that
    slice's worktree), accept as is, or drop it (revert that slice's files; a child:
-   `orca worktree rm --force`); then the run continues with no new gate.
+   `orca worktree rm --force`); then the run continues with no new gate. Full suites or an `after`
+   command still failing: committed slices stay `done`; the user picks one more fix round or accepts
+   it as is (the report names the failing tests).
 7. **Report**: one template T for the milestone (a line per slice: files, commit, review fixes,
-   tests), then the next milestone in one line. Start it only when the user says so.
+   tests; then the full suites), then the next milestone in one line. Start it only when the user
+   says so.
 
 **Launch**: when the user sets `Stage: live`, run one risk review of the auth, customer-data and money
-code built so far (one reviewer per area), turn its findings into fix slices, and add
+code built so far (one reviewer per area), turn its findings into fix slices, propose a Change for the
+safety rules marked `Revisit when: launch` or recorded in design docs as not followed before
+launch, and add
 `launch risk review: <date>` to the charter.
 
 ## Change

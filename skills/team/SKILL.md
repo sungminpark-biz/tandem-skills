@@ -2,11 +2,12 @@
 name: team
 description: >-
   Agent team for Claude Code: Claude designs and reviews, a Claude Sonnet worker builds (an Orca
-  worker). Feature: design doc -> independent read-only review (+ a risk reviewer for money, auth,
-  data-changing migrations) -> user approval -> Sonnet worker implements -> code review by a different
-  model + ponytail -> report. Founded services build a milestone at a time: one milestone design, one
-  review, one approval, then its slices back to back. Foundation mode ("/team foundation <service>")
-  drafts the charter, the expensive-to-reverse decisions and the milestone map with the user.
+  worker). Feature: design doc -> independent read-only review (+ a risk reviewer for money, auth
+  and, except before launch, data-changing migrations) -> user approval -> Sonnet worker implements
+  -> code review by a different model + ponytail -> report. Founded services build a milestone at a
+  time: one milestone design, one review, one approval, then its slices back to back. Foundation mode
+  ("/team foundation <service>") drafts the charter, the expensive-to-reverse decisions and the
+  milestone map with the user.
   Triggers: "/team", "/team foundation", "/team M3" (a milestone or slice), "design then have a worker
   implement it", "have sonnet implement this", "work as a team", "design the whole service from
   scratch". Trivial edits (1-2 files) don't need a team - just do them.
@@ -36,9 +37,9 @@ spec in the user's language and ask for the answer in it, keeping template headi
 - **Approve before code.** Nothing is implemented until the user approves the design (or milestone).
   Only an explicit "proceed without approval" in the request skips the gate.
 - **Independent review.** Every design and every diff is reviewed by a read-only `team-reviewer`
-  subagent. A **risk reviewer** joins in parallel for money, auth/permissions, migrations that change
-  or drop existing data, customer data once real users exist (charter `Stage: live`, or no Stage
-  line), and every foundation review; a project's foundation may name more. Every review prompt is
+  subagent. A **risk reviewer** joins in parallel for money, auth/permissions, every foundation
+  review, and — except before launch (below) — migrations that change or drop existing data and
+  customer data; a project's foundation may name more. Every review prompt is
   self-contained (paths, measured facts, the template) and ends with: "Review only: no edits, no
   DB/MCP writes, no deploys, no integration tests that write. Stop after 30 tool calls (60 for a
   milestone or foundation review) and list what you didn't check." Wait for every reviewer you
@@ -64,11 +65,32 @@ spec in the user's language and ask for the answer in it, keeping template headi
   item that changes an interface) → revise the doc, one review round on that change; a substantial
   one shows the gate again.
 - **Parallel where it pays**: survey with parallel Explore agents per area; independent slices build in
-  parallel, each in its own worktree; a large diff gets one reviewer per area.
-- Never write to production databases or external services to verify. A source you can't reach →
-  write `not verified: <reason>`, never a guess. Post-review steps (applying a migration, deploying)
-  wait for the code review's approval. Commit only when the user asks (a milestone approval covers its
-  per-slice local commits). Scratch files go to `/tmp/team/<slug>/`.
+  parallel, each in its own worktree; a large diff gets one reviewer per area. Survey agents — Explore
+  and the agent searching today's options — get `model: "sonnet"`: they find and quote, Claude decides.
+- **Tests: narrow per change, full once** (how often and how widely tests run is how the team works).
+  - A definition of done names the tests covering the change — lint, types, and the unit, integration
+    and e2e tests it touches. The worker runs it once at the end, Claude once in review; a fix round
+    re-runs only what failed and what covers the files it changed. A command that needs a post-review
+    step (a migration applied) is marked `after <step>` and runs right after that step.
+  - The full suites — every test command the project has, lint and types included, or `none` — are
+    listed once in the design and run once by Claude: when the code review approves a feature, or at
+    the end of a milestone run.
+  - Repeated runs ("3 times in a row") only for a test the design notes as flaky, citing the run that
+    showed it. A suite that can't run part of itself (the design proposes a filter) runs once at the
+    end of a change that edits it, otherwise only with the full suites.
+  - A failure in the full suites or an `after` command: a test that exists on the base commit and
+    fails there too, or passes on one re-run without being touched by this work, is reported, not
+    fixed. Otherwise one fix round (the worker of the slice it's in if still running, else a new one in
+    that worktree), code review on the fix, then re-run what failed (after any post-review step the fix
+    needs); a milestone commits the fix, a feature leaves it uncommitted with the rest. Still failing →
+    stop and report.
+- **Before launch** (charter `Stage: pre-launch`; no charter → not before launch) the database holds
+  test data: Claude and workers may write to it to verify (reviewers stay read-only). Otherwise never
+  write to production databases to verify.
+- Messages, payments and paid APIs are never used to verify. A source you can't reach → write `not
+  verified: <reason>`, never a guess. Post-review steps (applying a migration, deploying) wait for the
+  code review's approval. Commit only when the user asks (a milestone approval covers its per-slice
+  local commits and their fix commits). Scratch files go to `/tmp/team/<slug>/`.
 
 ## Feature
 1. **Survey** (≤10 minutes): existing assets, call sites, measured scale from read-only sources.
@@ -86,12 +108,15 @@ spec in the user's language and ask for the answer in it, keeping template headi
    worker question that changes the design → revise the doc before answering (foundation-level →
    `foundation.md` "Change").
 6. **Code review**, together: reviewer with template C (worktree path, changed files, design doc,
-   what to check hard); Claude checks `git diff --stat` against the reported files and the doc's scope and re-runs
-   every definition-of-done command (the worker's report is a claim, not evidence); `ponytail-review`
-   on the diff through the Skill tool — judge each item like a finding (it never cuts validation,
-   data-loss handling, security); a failed pass is reported, never read as "lean already". Accepted
-   items go back to the same worker as "Apply review: …"; in round 2 every reviewer that asked for
-   changes re-checks only what changed.
+   what to check hard); Claude checks `git diff --stat` against the reported files and the doc's
+   scope and re-runs the definition of done, minus `after <step>` commands (the worker's report is a
+   claim, not evidence); `ponytail-review` on the diff through the Skill tool — judge each item like a
+   finding (it never cuts validation, data-loss handling, security); a failed pass is reported, never
+   read as "lean already". Accepted items go back to the same worker as "Apply review: …"; in round 2
+   every reviewer that asked for changes re-checks only what changed. Once the code review approves a
+   feature, Claude runs its post-review steps (the user's: wait for their "done") and `after <step>`
+   commands, then the full suites (Rules: Tests); a milestone's slices leave the full suites to the end
+   of the run.
 7. **Report** (template T).
 
 ## Orca worker
@@ -129,18 +154,20 @@ spec in the user's language and ask for the answer in it, keeping template headi
 **D — design doc**
 ```
 Goal (one paragraph) · Foundation refs (if any) · Scope: files to create/modify · Interfaces, schemas,
-signatures · Implementation order · Definition of done: commands that must pass · Do-not-touch ·
-Not doing (and why)
+signatures · Implementation order · Definition of done: the commands covering this change (Rules:
+Tests; `after <step>` for one that needs a post-review step) · Full suites (a milestone lists them
+once, at its end) · Do-not-touch · Not doing (and why)
 + for anything new it picks: the options found today and why this one, with sources and dates
 ```
 **R — design review request**
 ```
 Break the design; list only problems, each with evidence (file:line / behaviour / contract). Check:
 files and call sites exist; signatures match the code; regressions, migrations, rollback; definition of
-done runnable; money/data: double-processing, races, state on failure; anything the implementer would
-have to guess; something in the repo, or available today, already does this (cite source and date);
-hand-rolled what the platform already provides (auth, queues, cron, rate limits); ponytail ladder on
-every component (needed at all? reuse? stdlib? native? one line?); contradicts the foundation.
+done runnable and no wider than the change (no full suites, no repeats without a noted flake);
+money/data: double-processing, races, state on failure; anything the implementer would have to guess;
+something in the repo, or available today, already does this (cite source and date); hand-rolled what
+the platform already provides (auth, queues, cron, rate limits); ponytail ladder on every component
+(needed at all? reuse? stdlib? native? one line?); contradicts the foundation.
 ## Critical (evidence required)  ## Missing  ## Ambiguous (questions)  ## Cut (ponytail)
 ## Verdict: needs revision | ready
 ```
@@ -154,20 +181,24 @@ every component (needed at all? reuse? stdlib? native? one line?); contradicts t
 ```
 ## Design ready — approval requested
 Document · one-line summary · scope (N files) · key decisions · review: raised / accepted / rebutted
-(a failed or partial review is stated) · not doing · definition of done · risks
+(a failed or partial review is stated) · not doing · definition of done · risks · foundation lines not
+followed, and why (a founded repo)
 Reply "approve" or "go", or tell me what to change.
 ```
 **S — worker spec**
 ```
 Read the design doc first: <absolute path>. Implement <all of it | slice …> in its order.
-Definition of done: <commands>; put the results in worker_done.
+Definition of done: <commands>; run it once at the end, minus `after <step>` commands (a fix round:
+only what failed and what covers the files you changed), and put the results in worker_done. While
+working, run only the tests your change touches; Claude runs the full suites.
 Only touch the doc's scope. Ask (the preamble's `ask`) before deviating or cutting anything; no plan
 mode; don't commit; list every modified file in worker_done --files-modified. ponytail is on: use it
 for how you write the code, but build everything the design specifies. Write your questions and
 worker_done in <the user's language>.
 ```
 **T — report**: design doc · files · what review changed · code review rounds and fixes ·
-`ponytail-review` applied / rejected · tests (fresh output from your own run) · open issues.
+`ponytail-review` applied / rejected · tests and full suites (fresh output from your own run; after a
+fix, which ones re-ran) · open issues.
 
 ## Gotchas
 - The reviewer is the `team-reviewer` agent (read-only, loads CLAUDE.md, resumable with SendMessage).
