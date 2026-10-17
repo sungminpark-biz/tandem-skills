@@ -101,10 +101,12 @@ Claude will:
 4. spawn a Claude Sonnet worker in Orca (`worker-start --spec … --agent claude --model sonnet`), which
    writes the code with ponytail inside the design's scope, and answer its questions
 5. review the diff (a spec check: missing, unrequested, implemented-but-wrong, each quoting the
-   design), re-run the definition of done itself rather than trusting the worker's report, run
-   `ponytail-review`, and dispatch fixes to the same worker until approved (max 2 rounds), then run
-   the full test suites once
-6. report: what the review changed, files touched, tests
+   design; a test check: each new test fails with the change reverted and is fed real input, not the
+   code's own output), re-run the definition of done itself rather than trusting the worker's report,
+   run `ponytail-review`, and dispatch fixes to the same worker until approved (max 2 rounds), then
+   run the full test suites once
+6. report: first whether each goal of your request was met (met / partly / not, with evidence), then
+   what the review changed, files touched, tests
 
 Say "you implement it" and Claude writes the
 code itself instead of a worker; the review step stays the same. `sonnet` is an alias, so the worker

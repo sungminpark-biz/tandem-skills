@@ -175,6 +175,8 @@ the platform already provides (auth, queues, cron, rate limits); ponytail ladder
 ```
 ## Verdict: APPROVE | REQUEST_CHANGES
 ## Spec check — quote the design line: missing or partial · not asked for · implemented but wrong
+## Test check — each test added for new behaviour: fails with the change reverted? fed real input (or
+its real shape), not output of the code under test? A no is a required change.
 ## Required changes (file:line)   ## Suggestions   ## Test results (command, pass/fail, exit code)
 ```
 **G — approval gate**
@@ -196,7 +198,9 @@ mode; don't commit; list every modified file in worker_done --files-modified. po
 for how you write the code, but build everything the design specifies. Write your questions and
 worker_done in <the user's language>.
 ```
-**T — report**: design doc · files · what review changed · code review rounds and fixes ·
+**T — report**: first, each goal and done criterion of the user's request or milestone: met / partly /
+not, with evidence (a file, a command's output) — a partly or not opens the report and the work is not
+called done · design doc · files · what review changed · code review rounds and fixes ·
 `ponytail-review` applied / rejected · tests and full suites (fresh output from your own run; after a
 fix, which ones re-ran) · open issues.
 
