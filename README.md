@@ -1,6 +1,6 @@
 # tandem-skills
 
-**Claude designs and reviews. A Sonnet worker builds.** Agent-team skills for Claude Code.
+**Claude designs and reviews. A worker builds — Claude Sonnet, or another agent you name.** Agent-team skills for Claude Code.
 
 [한국어 README](README.ko.md)
 
@@ -14,7 +14,8 @@ Claude drafts the design
      data-changing migrations and customer data)
   → Claude rebuts or accepts each point with evidence, revises the doc   (≤2 rounds)
   → ★ you approve the design ★
-  → a Claude Sonnet worker implements (a supervised Orca worker in its own terminal tab)
+  → a worker implements: Claude Sonnet, or another Orca agent you name such as Gemini CLI
+     (a supervised Orca worker in its own terminal tab)
   → the reviewer checks the diff against the design, Claude re-runs the tests,
      ponytail-review hunts over-engineering                                    (≤2 rounds)
   → the same worker fixes → report
@@ -52,7 +53,7 @@ from the one that wrote it.
 - [Claude Code](https://code.claude.com) (`claude` on PATH, logged in; tested range below)
 - [ponytail](https://github.com/DietrichGebert/ponytail) in Claude Code — `/team` refuses to start
   without it (see Install)
-- [Orca](https://github.com/stablyai/orca) for the supervised Sonnet worker with a visible terminal
+- [Orca](https://github.com/stablyai/orca) for the supervised worker with a visible terminal
   tab. Without it, you run the implementation yourself in `claude --model sonnet` and come back for
   the review; design, review and foundation mode work without it.
 - Recommended: the [context7](https://github.com/upstash/context7) plugin, for the design's currency
@@ -98,8 +99,8 @@ Claude will:
    auth, and after launch for data-changing migrations and customer data — check each item against the
    code, and revise the doc or rebut
 3. **stop and show you a summary — nothing is implemented until you say "approve"**
-4. spawn a Claude Sonnet worker in Orca (`worker-start --spec … --agent claude --model sonnet`), which
-   writes the code with ponytail inside the design's scope, and answer its questions
+4. spawn the worker in Orca (`worker-start --spec … --agent claude --model sonnet`, or `--agent gemini`
+   and the like when you named another agent — it runs its own configured model), which writes the code with ponytail inside the design's scope, and answer its questions
 5. review the diff (a spec check: missing, unrequested, implemented-but-wrong, each quoting the
    design; a test check: each new test fails with the change reverted and is fed real input, not the
    code's own output), re-run the definition of done itself rather than trusting the worker's report,
@@ -111,6 +112,11 @@ Claude will:
 Say "you implement it" and Claude writes the
 code itself instead of a worker; the review step stays the same. `sonnet` is an alias, so the worker
 follows the newest Sonnet.
+
+To implement with another agent Orca can launch, say so in the request or at the gate ("implement with
+gemini"); it holds for that feature or milestone run, and its code is reviewed by Opus. A worker stuck on
+one model step for two waits in a row (some agents have no model timeout) is stopped and restarted once
+in the same worktree.
 
 No Orca? Claude still does steps 1–3, then tells you to implement the design in
 `claude --model sonnet` and come back for the review.
@@ -142,7 +148,7 @@ Claude will:
 
 Then build it a milestone at a time: `/team M3` (a milestone or slice name). Claude writes one design
 doc for the whole milestone (shared interfaces first, then each slice), gets it reviewed once, and you
-approve once. The slices are then built back to back: one Sonnet worker takes dependent slices one
+approve once. The slices are then built back to back: one worker takes dependent slices one
 after another, independent slices get their own worker in a child worktree in parallel, and every
 slice gets its code review and a local commit. You get one report at the end; the run stops early
 only for a contested Critical, a code review not approved in 2 rounds, tests still failing after a
@@ -192,8 +198,11 @@ Other details that came out of real runs:
 
 ## Limitations
 
-- Reviewer, critic and worker are all Claude models. The code review always crosses models (Opus
-  reviews Sonnet's code, Sonnet reviews Claude's own), but there is no other vendor's view any more.
+- Reviewer and critic are Claude models; the worker is Claude Sonnet unless you name another agent. The
+  code review always crosses models (Opus reviews Sonnet's or another agent's code, Sonnet reviews
+  Claude's own).
+- A non-Claude implementer has not been through a full milestone run yet. It must run unattended: an
+  agent that stops for confirmation prompts or whose login expires mid-run needs a human.
 - The reviewer's Bash isn't sandboxed; "review only, no writes to databases or external services" is a
   prompt rule. Check your Claude Code allow rules for anything that reaches production.
 - Approval gates are a model-compliance property, not a hard block.

@@ -67,7 +67,7 @@ decisions** (extra risk areas, database rules, what a test must check). **How th
 this skill**: a foundation line that sets the implementer, approval unit, review procedure, test runs
 or reports is not followed. Before launch, neither is a safety rule that guards only test data (not
 users, money, secrets or external services). The gate names each such line ("015: Claude implements →
-not followed: Sonnet worker"; a safety rule with its cost per slice) and the milestone design doc
+not followed: Orca worker"; a safety rule with its cost per slice) and the milestone design doc
 records it; the user keeps one by saying so, or drops it for good with a Change. The user saying so in
 the request ("you implement it") still wins.
 1. **Plan** (≤10 minutes, parallel Explore agents per area, plus SKILL step 1's search of today's
@@ -84,7 +84,8 @@ the request ("you implement it") still wins.
 4. **Milestone gate**, then end your turn:
    ```
    ## Milestone M<n> — approval requested
-   Design doc · slices in order (parallel groups marked), one line each · shared interfaces and
+   Design doc · implementer (agent · model; you may change it here) · slices in order (parallel
+   groups marked), one line each · shared interfaces and
    migrations · risky slices · review: raised / accepted / rebutted · foundation lines not followed,
    and why · each slice ends with a local commit of its own files (no push; a fix from the full
    suites or an `after` command gets one more) · full suites at the end ·
@@ -97,13 +98,13 @@ the request ("you implement it") still wins.
    ```
 5. **Build**, no further approvals: first add `Approved: <date> (S…)` with the approved slices to the
    design doc's header. One Orca run for the milestone.
-   - Dependent slices: one Sonnet worker in the milestone worktree takes them one after another
+   - Dependent slices: one worker in the milestone worktree takes them one after another
      (`--terminal <handle>`), each with spec S naming its slice.
    - Parallel slices start once the slices they depend on are committed: one worker each, at most 3 at
      once, `worker-start --spec … --worktree new-child --name <slice-id> --base-branch <the milestone
      worktree's branch> --setup run --agent claude --model sonnet --timeout-ms 120000 --json` (Bash
-     timeout ≥180000). Its code review, `git diff --stat` and definition-of-done re-run happen in its
-     child path.
+     timeout ≥180000; another implementer: SKILL "Orca worker"). Its code review, `git diff --stat`
+     and definition-of-done re-run happen in its child path.
    - Each slice gets SKILL step 6 (code review, re-run definition of done, `ponytail-review`; a large
      diff gets one reviewer per area; fixes to the same worker). The next slice's build doesn't wait
      for this review unless it depends on that slice.

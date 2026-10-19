@@ -1,21 +1,22 @@
 ---
 name: team
 description: >-
-  Agent team for Claude Code: Claude designs and reviews, a Claude Sonnet worker builds (an Orca
-  worker). Feature: design doc -> independent read-only review (+ a risk reviewer for money, auth
-  and, except before launch, data-changing migrations) -> user approval -> Sonnet worker implements
+  Agent team for Claude Code: Claude designs and reviews, an Orca worker builds (Claude Sonnet, or
+  another agent the user names, e.g. Gemini CLI). Feature: design doc -> independent read-only review
+  (+ a risk reviewer for money, auth and, except before launch, data-changing migrations) -> user
+  approval -> the worker implements
   -> code review by a different model + ponytail -> report. Founded services build a milestone at a
   time: one milestone design, one review, one approval, then its slices back to back. Foundation mode
   ("/team foundation <service>") drafts the charter, the expensive-to-reverse decisions and the
   milestone map with the user.
   Triggers: "/team", "/team foundation", "/team M3" (a milestone or slice), "design then have a worker
-  implement it", "have sonnet implement this", "work as a team", "design the whole service from
-  scratch". Trivial edits (1-2 files) don't need a team - just do them.
+  implement it", "have sonnet implement this", "implement with gemini", "work as a team", "design the
+  whole service from scratch". Trivial edits (1-2 files) don't need a team - just do them.
 argument-hint: "[foundation] <feature, milestone, slice or service>"
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
 ---
 
-# /team — Claude designs and reviews, a Sonnet worker builds
+# /team — Claude designs and reviews, a worker builds
 
 For Claude Code only (another agent reading this folder stops and tells the user). Write to the user in
 their language, including template headings; this file, its templates, Orca notices and subagent
@@ -32,8 +33,10 @@ spec in the user's language and ask for the answer in it, keeping template headi
 (`foundation.md` is next to this file; read it only for those routes.)
 
 ## Rules
-- **Roles.** Claude designs, reviews and decides; a Claude Sonnet worker writes the code (Orca, below).
-  No Orca → the user runs the spec in `claude --model sonnet`. "You implement it" → Claude does.
+- **Roles.** Claude designs, reviews and decides; an Orca worker writes the code (below): Claude
+  Sonnet, unless the user names another Orca agent ("implement with gemini") in the request or at the
+  gate — it holds for that feature or milestone run. No Orca → the user runs the spec in `claude
+  --model sonnet` or their agent. "You implement it" → Claude does.
 - **Approve before code.** Nothing is implemented until the user approves the design (or milestone).
   Only an explicit "proceed without approval" in the request skips the gate.
 - **Independent review.** Every design and every diff is reviewed by a read-only `team-reviewer`
@@ -44,8 +47,8 @@ spec in the user's language and ask for the answer in it, keeping template headi
   DB/MCP writes, no deploys, no integration tests that write. Stop after 30 tool calls (60 for a
   milestone or foundation review) and list what you didn't check." Wait for every reviewer you
   started, then check each finding against the code yourself; accept or rebut with evidence.
-- **Code is reviewed by a different model than its author**: Sonnet-written → `model: "opus"`,
-  otherwise `model: "sonnet"` (always pass it).
+- **Code is reviewed by a different model than its author**: written by Sonnet or a non-Claude agent
+  → `model: "opus"`, by Claude itself → `model: "sonnet"` (always pass it).
 - **Preflight**, once before the survey:
   - `ponytail:ponytail-review` is in the skill list; missing → give `/plugin marketplace add
     DietrichGebert/ponytail` + `/plugin install ponytail@ponytail` and stop.
@@ -104,7 +107,7 @@ spec in the user's language and ask for the answer in it, keeping template headi
    reviewer whose Critical you rebutted: SendMessage "Accepted: … → changed: … / Rebutted: … —
    evidence: … / Re-check and answer in the same format."
 4. **Gate** (template G): show it, end your turn, wait.
-5. **Build**: the Sonnet worker with the spec (template S). Claude doesn't edit source meanwhile. A
+5. **Build**: the worker with the spec (template S). Claude doesn't edit source meanwhile. A
    worker question that changes the design → revise the doc before answering (foundation-level →
    `foundation.md` "Change").
 6. **Code review**, together: reviewer with template C (worktree path, changed files, design doc,
@@ -129,8 +132,9 @@ spec in the user's language and ask for the answer in it, keeping template headi
   ```bash
   orca orchestration run-create --objective "<feature>" --json
   orca orchestration worker-start --spec "<spec>" --worktree current --agent claude --model sonnet --timeout-ms 120000 --json   # Bash timeout ≥180000
+  # another implementer: --agent <its Orca id, e.g. gemini> and no --model (it runs its own configured model)
   orca orchestration worker-show --dispatch <ctx_id> --json     # → terminal handle
-  orca terminal read --terminal <handle> --screen --json        # must show a Sonnet model, or stop
+  orca terminal read --terminal <handle> --screen --json        # must show the chosen agent (Claude: a Sonnet model), or stop
   # no terminal → orca orchestration worker-read --dispatch <ctx_id> --source auto --json
   ```
   `worker-start` exits non-zero → don't relaunch: read `failedStage` and `residualResources`.
@@ -138,17 +142,23 @@ spec in the user's language and ask for the answer in it, keeping template headi
 - Next task for the same worker (a fix round, or the next slice): `worker-start --spec "<spec>"
   --terminal <handle> --worktree <its worktree: current | path:<child>> --json` once its dispatch
   settled, then `--ack` the old delivery and wait on the new dispatch. A released worker's slice
-  restarts with a new worker in that slice's worktree (`--worktree path:<path> --agent claude --model
-  sonnet`).
+  restarts with a new worker in that slice's worktree (`--worktree path:<path>`, same `--agent` and
+  `--model`).
 - Wait: `orca orchestration check --wait --types worker_done,escalation,question --timeout-ms 540000
   --json` (Bash timeout 600000); process every message (a question → `orca orchestration reply --id
   <msg_id> --body "<answer>" --json`), accept `worker_done` only from the dispatch you're waiting on,
   then `--ack <deliveryId>`. Timeouts and empty waits are normal (a build takes 15–60 minutes). After
   three empty waits: `worker-list --run <run_id> --include-remote --json` and `worker-show --dispatch <ctx_id> --json` — a non-null
   `observation.agentWait` is a prompt only a human can answer; answer it with `orca terminal send`.
+- **Stalled worker** (some agents have no model timeout and wait forever on a dropped response): after
+  each empty wait read its screen; two in a row showing the same model step (thinking or responding,
+  not a running command) with nothing new but the elapsed timer → `worker-stop --dispatch <ctx_id>`,
+  then a new worker in the same worktree (same `--agent`/`--model`) with the spec plus "A stopped
+  worker left partial work here (`git status`, `git diff`): keep what fits the design, finish the
+  rest." One restart per slice; stalled again → stop and report.
 - Finish: `worker-release --dispatch <ctx_id>` for every settled dispatch (before removing its
   worktree); `worker-list --run <run_id> --terminal-state reclaimable` must return none. Never stop or
-  release because of a timeout or idle.
+  release because of a timeout or idle (a stall is neither).
 
 ## Templates
 **D — design doc**
@@ -182,7 +192,8 @@ its real shape), not output of the code under test? A no is a required change.
 **G — approval gate**
 ```
 ## Design ready — approval requested
-Document · one-line summary · scope (N files) · key decisions · review: raised / accepted / rebutted
+Document · one-line summary · implementer (agent · model; the user may change it here) · scope (N
+files) · key decisions · review: raised / accepted / rebutted
 (a failed or partial review is stated) · not doing · definition of done · risks · foundation lines not
 followed, and why (a founded repo)
 Reply "approve" or "go", or tell me what to change.
