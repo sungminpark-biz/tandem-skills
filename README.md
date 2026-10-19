@@ -100,7 +100,8 @@ Claude will:
    code, and revise the doc or rebut
 3. **stop and show you a summary — nothing is implemented until you say "approve"**
 4. spawn the worker in Orca (`worker-start --spec … --agent claude --model sonnet`, or `--agent gemini`
-   and the like when you named another agent — it runs its own configured model), which writes the code with ponytail inside the design's scope, and answer its questions
+   and the like when you named another agent — it runs its own configured model), which writes the
+   code with ponytail inside the design's scope, and answer its questions
 5. review the diff (a spec check: missing, unrequested, implemented-but-wrong, each quoting the
    design; a test check: each new test fails with the change reverted and is fed real input, not the
    code's own output), re-run the definition of done itself rather than trusting the worker's report,
@@ -114,7 +115,8 @@ code itself instead of a worker; the review step stays the same. `sonnet` is an 
 follows the newest Sonnet.
 
 To implement with another agent Orca can launch, say so in the request or at the gate ("implement with
-gemini"); it holds for that feature or milestone run, and its code is reviewed by Opus. A worker stuck on
+gemini"); it holds for that feature or milestone run, and its code is reviewed by Opus. Its spec tells it
+to read the repo's CLAUDE.md files, which such agents don't load on their own. A worker stuck on
 one model step for two waits in a row (some agents have no model timeout) is stopped and restarted once
 in the same worktree.
 

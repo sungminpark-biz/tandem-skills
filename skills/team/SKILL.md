@@ -48,7 +48,7 @@ spec in the user's language and ask for the answer in it, keeping template headi
   milestone or foundation review) and list what you didn't check." Wait for every reviewer you
   started, then check each finding against the code yourself; accept or rebut with evidence.
 - **Code is reviewed by a different model than its author**: written by Sonnet or a non-Claude agent
-  → `model: "opus"`, by Claude itself → `model: "sonnet"` (always pass it).
+  → `model: "opus"`, otherwise `model: "sonnet"` (always pass it).
 - **Preflight**, once before the survey:
   - `ponytail:ponytail-review` is in the skill list; missing → give `/plugin marketplace add
     DietrichGebert/ponytail` + `/plugin install ponytail@ponytail` and stop.
@@ -201,6 +201,8 @@ Reply "approve" or "go", or tell me what to change.
 **S — worker spec**
 ```
 Read the design doc first: <absolute path>. Implement <all of it | slice …> in its order.
+<A non-Claude worker gets this line:> Before coding, read the repo's CLAUDE.md files covering the
+paths you touch (root and nested) and follow them; your agent doesn't load them on its own.
 Definition of done: <commands>; run it once at the end, minus `after <step>` commands (a fix round:
 only what failed and what covers the files you changed), and put the results in worker_done. While
 working, run only the tests your change touches; Claude runs the full suites.
