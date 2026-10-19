@@ -226,6 +226,9 @@ fix, which ones re-ran) · open issues.
 - Bash: foreground ≤10 minutes; background stops at its `timeout` (default 30 minutes, max 2 hours).
 - Orca pre-grants folder trust where it launches workers; a worker still stuck at a trust prompt shows
   up as `agentWait`.
+- An orchestration write (`reply`) failing with `stable_pane_required` (the driver runs in a terminal
+  without a fixed pane, e.g. a floating one) → repeat it with `--run <run_id> --from <coordinator_handle
+  from run-create>`; until then the worker sits waiting for the answer.
 - Orca types "You have N orchestration message…" into the driver as a user turn. It isn't the user:
   answer with a one-line status.
 - Never type `/ponytail…`, "stop ponytail" or "normal mode" as a prompt — it flips ponytail's global
