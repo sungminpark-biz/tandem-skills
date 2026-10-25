@@ -1,6 +1,6 @@
 # tandem-skills
 
-**Claude designs and reviews. A worker builds — Claude Sonnet, or another agent you name.** Agent-team skills for Claude Code.
+**Gemini plans. Claude designs and reviews. A worker builds — Claude Sonnet, or another agent you name.** Agent-team skills for Claude Code.
 
 [한국어 README](README.ko.md)
 
@@ -8,7 +8,9 @@ Like a tandem bicycle: one rider steers, the other pedals. Open Claude Code in y
 `/team <task>`, and you get:
 
 ```
-Claude drafts the design
+Gemini CLI drafts the product plan — flows, policies, edge cases, open business questions
+  (headless and read-only, only when users see the change); you answer its business questions
+  → Claude drafts the design
   → a read-only Claude reviewer tries to break it (reads the repo, cites file:line);
      a second, risk-focused reviewer joins for money and auth (after launch also
      data-changing migrations and customer data)
@@ -25,7 +27,7 @@ Starting a whole service from scratch? `/team foundation <service>` first settle
 decisions that are expensive to reverse and a milestone map — then it is built a milestone at a time:
 one design, one review and one approval per milestone, its slices built back to back.
 
-No MCP, no daemon, no scripts: two `SKILL.md` files and one reviewer subagent. The implementer runs as
+No MCP, no daemon, no scripts: two `SKILL.md` files, one reviewer subagent and one Gemini policy file. The implementer runs as
 an [Orca](https://github.com/stablyai/orca) worker; without Orca, you implement the approved design in
 `claude --model sonnet` and come back for the review.
 
@@ -45,7 +47,7 @@ from the one that wrote it.
 
 | Skill | What it does |
 |---|---|
-| `/team` | Feature: the design → adversarial review → approval → implement → code review loop above. Foundation: charter → decision records → milestone map → review → approval. Milestone run: one design and one approval per milestone, then its slices built and reviewed back to back |
+| `/team` | Feature: the product plan → design → adversarial review → approval → implement → code review loop above. Foundation: charter → decision records → milestone map → review → approval. Milestone run: one design and one approval per milestone, then its slices built and reviewed back to back |
 | `/debate` | Claude drafts, a read-only critic on a different model (Sonnet when the driver is Opus) attacks it in rounds, Claude verifies each point against the code and reports the consensus. Used stand-alone for design decisions |
 
 ## Requirements
@@ -56,13 +58,16 @@ from the one that wrote it.
 - [Orca](https://github.com/stablyai/orca) for the supervised worker with a visible terminal
   tab. Without it, you run the implementation yourself in `claude --model sonnet` and come back for
   the review; design, review and foundation mode work without it.
+- Recommended: [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`gemini` on PATH, logged in)
+  for the product plan. Without it, or when it fails, Claude writes the plan and the gate says so.
+  The planner sends what it reads of your repo to Google
 - Recommended: the [context7](https://github.com/upstash/context7) plugin, for the design's currency
   check (`/plugin install context7@claude-plugins-official`, then log in once with `/mcp`). Before
   designing, `/team` checks that context7 and the project's database MCP are connected and asks you to
   authenticate one that isn't
 
-Tested with Claude Code 2.1.273–2.1.286 (Claude Opus 5 / 5.5 driver, Sonnet 5.5 workers) and Orca
-1.4.204–1.4.220 on macOS.
+Tested with Claude Code 2.1.273–2.1.286 (Claude Opus 5 / 5.5 driver, Sonnet 5.5 workers), Orca
+1.4.204–1.4.220 and Gemini CLI 0.65.0 (the planner call alone, not yet a full run) on macOS.
 
 ## Install
 
@@ -92,8 +97,12 @@ Inside an Orca worktree, in Claude Code:
 ```
 
 Claude will:
-1. survey the code (parallel Explore agents on Sonnet for a broad codebase), then write
-   `docs/design/<date>-<slug>.md` (scope, signatures, order, definition of done, what is not built)
+1. start Gemini CLI in the background (`gemini -p` under `plan-policy.toml`, which allows only reading
+   files and web search) to draft the product plan — flows, policies and edge cases, how other products
+   do it, what isn't built, open business questions — while it surveys the code (parallel Explore
+   agents on Sonnet for a broad codebase); ask you the plan's business questions that change scope;
+   then write `docs/design/<date>-<slug>.md` (the plan as decided, scope, signatures, order,
+   definition of done, what is not built). A refactor or other change users don't see has no plan
 2. get an adversarial review from the read-only `team-reviewer` subagent (critical / missing /
    ambiguous, and what ponytail's ladder would cut, with evidence) — plus a risk reviewer for money and
    auth, and after launch for data-changing migrations and customer data — check each item against the
@@ -138,8 +147,9 @@ In Claude Code:
 ```
 
 Claude will:
-1. draft `docs/design/foundation/charter.md` with you — who, core flows, success/failure signals,
-   design caps, non-goals. Every unknown becomes a question for you; business calls are yours
+1. have Gemini CLI draft the charter — who, core flows, success/failure signals, design caps,
+   non-goals, candidate milestones as user-visible capabilities — correct it against the code and
+   write `docs/design/foundation/charter.md`. Every unknown becomes a question for you; business calls are yours
 2. write one record per expensive-to-reverse decision (`decisions/NNN-<slug>.md`: data model,
    identity, integrations, money flow, runtime…) with the options it rejected and a dated source
 3. write `slices.md`: milestones of 2–4 slices each, M1 a walking skeleton that touches every
@@ -148,8 +158,9 @@ Claude will:
    (contradictions, missing or misplaced decisions, over-engineering against the design caps)
 5. **stop for your approval**, then propose M1
 
-Then build it a milestone at a time: `/team M3` (a milestone or slice name). Claude writes one design
-doc for the whole milestone (shared interfaces first, then each slice), gets it reviewed once, and you
+Then build it a milestone at a time: `/team M3` (a milestone or slice name). When users see the
+milestone, Gemini plans it first. Claude writes one design doc for the whole milestone (the plan and
+shared interfaces first, then each slice), gets it reviewed once, and you
 approve once. The slices are then built back to back: one worker takes dependent slices one
 after another, independent slices get their own worker in a child worktree in parallel, and every
 slice gets its code review and a local commit. You get one report at the end; the run stops early
@@ -185,6 +196,7 @@ deliberately not built).
 | Piece | Mechanism | Effect |
 |---|---|---|
 | Reviewers and the debate critic | `team-reviewer` subagent: `Write`, `Edit`, `NotebookEdit` disallowed | No edit tools; they read the repo and run commands (their Bash isn't sandboxed — see Limitations) |
+| Planner | Gemini CLI headless under `plan-policy.toml`, loaded as an admin policy so it outranks user policies | Only file reads and web search: no edits, no shell, no URL fetches, no MCP tools. `--approval-mode plan` is not used — headless, it switches itself to YOLO |
 | Worker | Orca worker spec: the design's scope of change, "do not commit", questions through Orca's `ask` | Changes stay inside the approved scope, uncommitted, for review |
 | Approval gates | skill rule | The driver must end its turn and wait after the design (and the foundation) is final |
 
@@ -200,6 +212,8 @@ Other details that came out of real runs:
 
 ## Limitations
 
+- The product planner is Gemini CLI and has not been through a full `/team` run yet; its plan is a
+  draft that Claude checks against the code, and every technical choice stays Claude's.
 - Reviewer and critic are Claude models; the worker is Claude Sonnet unless you name another agent. The
   code review always crosses models (Opus reviews Sonnet's or another agent's code, Sonnet reviews
   Claude's own).
@@ -223,6 +237,7 @@ Other details that came out of real runs:
 skills/
   team/SKILL.md          routing, rules, feature flow, Orca worker commands, templates
   team/foundation.md     found / milestone run / change   (read only for those routes)
+  team/plan-policy.toml  Gemini CLI policy for the product plan: read files and search the web only
   debate/SKILL.md        the debate loop
 agents/
   team-reviewer.md       read-only, resumable reviewer / critic subagent for /team and /debate

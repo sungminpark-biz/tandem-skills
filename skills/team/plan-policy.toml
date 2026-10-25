@@ -1,0 +1,22 @@
+# /team product plan: Gemini CLI reads files and searches the web, nothing else.
+# Loaded with --admin-policy so it outranks user policies that allow every tool.
+# (--approval-mode plan is not read-only headless: it exits plan mode into YOLO.)
+# Gemini skips a policy file it can't parse and runs without it: after editing, ask a headless run
+# to write a file and check that it can't. No web_fetch: with read_file it could send files anywhere.
+[[rule]]
+toolName = "*"
+decision = "deny"
+priority = 900
+denyMessage = "Planning is read-only: read files and search the web only."
+
+[[rule]]
+toolName = "*"
+mcpName = "*"
+decision = "deny"
+priority = 900
+denyMessage = "Planning is read-only: read files and search the web only."
+
+[[rule]]
+toolName = ["glob", "grep_search", "list_directory", "read_file", "read_many_files", "google_web_search", "update_topic", "complete_task"]
+decision = "allow"
+priority = 950

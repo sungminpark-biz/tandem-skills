@@ -1,8 +1,9 @@
 ---
 name: team
 description: >-
-  Agent team for Claude Code: Claude designs and reviews, an Orca worker builds (Claude Sonnet, or
-  another agent the user names, e.g. Gemini CLI). Feature: design doc -> independent read-only review
+  Agent team for Claude Code: Gemini CLI drafts the product plan, Claude designs and reviews, an Orca
+  worker builds (Claude Sonnet, or another agent the user names, e.g. Gemini CLI). Feature: product
+  plan (when users see the change) -> design doc -> independent read-only review
   (+ a risk reviewer for money, auth and, except before launch, data-changing migrations) -> user
   approval -> the worker implements
   -> code review by a different model + ponytail -> report. Founded services build a milestone at a
@@ -16,7 +17,7 @@ argument-hint: "[foundation] <feature, milestone, slice or service>"
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
 ---
 
-# /team — Claude designs and reviews, a worker builds
+# /team — Gemini plans, Claude designs and reviews, a worker builds
 
 For Claude Code only (another agent reading this folder stops and tells the user). Write to the user in
 their language, including template headings; this file, its templates, Orca notices and subagent
@@ -33,10 +34,32 @@ spec in the user's language and ask for the answer in it, keeping template headi
 (`foundation.md` is next to this file; read it only for those routes.)
 
 ## Rules
-- **Roles.** Claude designs, reviews and decides; an Orca worker writes the code (below): Claude
-  Sonnet, unless the user names another Orca agent ("implement with gemini") in the request or at the
-  gate — it holds for that feature or milestone run. No Orca → the user runs the spec in `claude
-  --model sonnet` or their agent. "You implement it" → Claude does.
+- **Roles.** Gemini CLI drafts the product plan (next rule); Claude designs, reviews and decides; an
+  Orca worker writes the code (below): Claude Sonnet, unless the user names another Orca agent
+  ("implement with gemini") in the request or at the gate — it holds for that feature or milestone
+  run. No Orca → the user runs the spec in `claude --model sonnet` or their agent. "You implement
+  it" → Claude does.
+- **Product plan by Gemini.** What users see and do — flows, policies and edge cases, what isn't
+  built, open business questions, how other products do it — is drafted by Gemini CLI (template P);
+  every technical choice stays Claude's. Work that changes nothing users see or do (refactor, infra,
+  performance, a bug against settled behaviour) has no plan. After the preflight, write the prompt to
+  `/tmp/team/<slug>/plan-req.md` and start it in the worktree, in the background (Bash
+  `run_in_background`, `timeout` 900000: a large repo's plan took 7–9 minutes):
+  ```bash
+  POLICY=<this skill's folder>/plan-policy.toml
+  test -r "$POLICY" && env -u ORCA_PANE_KEY gemini -p "$(cat /tmp/team/<slug>/plan-req.md)" --skip-trust --admin-policy "$POLICY" > /tmp/team/<slug>/plan.md 2> /tmp/team/<slug>/plan.err
+  ```
+  The policy leaves Gemini only file reads and web search (Gemini runs without a policy it can't
+  read, hence `test -r`); never use `--approval-mode plan` instead (headless, it switches itself to
+  YOLO and edits). `--skip-trust`: headless Gemini exits in an
+  untrusted folder. `env -u ORCA_PANE_KEY`: Gemini's Orca hooks would report as the driver's pane.
+  No `gemini` on PATH, a non-zero exit or timeout (reason in `plan.err`), a plan without the
+  sections asked for, or "plan it yourself" → Claude writes those sections, and the gate says why.
+  The plan is a draft, not evidence: a claim the code or the foundation contradicts is corrected; a
+  source it cites is opened before the design relies on it. Open questions: up to 4 that most change
+  the design go to the user before the design doc (AskUserQuestion, recommended option first); the
+  rest take the plan's recommendation and go on the gate as assumptions (a charter asks them all:
+  `foundation.md` Found).
 - **Approve before code.** Nothing is implemented until the user approves the design (or milestone).
   Only an explicit "proceed without approval" in the request skips the gate.
 - **Independent review.** Every design and every diff is reviewed by a read-only `team-reviewer`
@@ -96,11 +119,12 @@ spec in the user's language and ask for the answer in it, keeping template headi
   local commits and their fix commits). Scratch files go to `/tmp/team/<slug>/`.
 
 ## Feature
-1. **Survey** (≤10 minutes): existing assets, call sites, measured scale from read-only sources.
+1. **Survey** (≤10 minutes), with the product plan (Rules) running alongside when users see the
+   change: existing assets, call sites, measured scale from read-only sources.
    Broad codebase → parallel Explore agents, one per area. If the design picks something new (a tool,
    service, library or approach), one more agent searches today's options for it on the web and in
    official docs (context7): the model's memory has gaps even before its cutoff, so the choice rests on
-   what was found, not what was recalled.
+   what was found, not what was recalled. Then read the plan and ask its open questions (Rules).
 2. **Design doc** `docs/design/<YYYYMMDD>-<slug>.md` (template D). Skeleton first, then fill in.
 3. **Design review** (template R): write `/tmp/team/<slug>/<name>-req.md` (paths, measured facts,
    template R) and start the reviewer (+ risk reviewer) in one message. Round 2 goes only to a
@@ -163,7 +187,9 @@ spec in the user's language and ask for the answer in it, keeping template headi
 ## Templates
 **D — design doc**
 ```
-Goal (one paragraph) · Foundation refs (if any) · Scope: files to create/modify · Interfaces, schemas,
+Goal (one paragraph) · Product plan: flows, policies and edge cases as decided, and the assumptions
+(none when users don't see the change) · Foundation refs (if any) · Scope: files to create/modify ·
+Interfaces, schemas,
 signatures · Implementation order · Definition of done: the commands covering this change (Rules:
 Tests; `after <step>` for one that needs a post-review step) · Full suites (a milestone lists them
 once, at its end) · Do-not-touch · Not doing (and why)
@@ -177,7 +203,8 @@ done runnable and no wider than the change (no full suites, no repeats without a
 money/data: double-processing, races, state on failure; anything the implementer would have to guess;
 something in the repo, or available today, already does this (cite source and date); hand-rolled what
 the platform already provides (auth, queues, cron, rate limits); ponytail ladder on every component
-(needed at all? reuse? stdlib? native? one line?); contradicts the foundation.
+(needed at all? reuse? stdlib? native? one line?); contradicts the foundation; a flow or edge case the
+product plan or the design misses.
 ## Critical (evidence required)  ## Missing  ## Ambiguous (questions)  ## Cut (ponytail)
 ## Verdict: needs revision | ready
 ```
@@ -192,11 +219,25 @@ its real shape), not output of the code under test? A no is a required change.
 **G — approval gate**
 ```
 ## Design ready — approval requested
-Document · one-line summary · implementer (agent · model; the user may change it here) · scope (N
+Document · one-line summary · product plan: Gemini | Claude (why) | none, and its assumptions ·
+implementer (agent · model; the user may change it here) · scope (N
 files) · key decisions · review: raised / accepted / rebutted
 (a failed or partial review is stated) · not doing · definition of done · risks · foundation lines not
 followed, and why (a founded repo)
 Reply "approve" or "go", or tell me what to change.
+```
+**P — product plan prompt** (in the user's language)
+```
+Plan only what users see and do; no files, APIs or schemas (Claude designs those). Read the repo's
+CLAUDE.md files and README<, and docs/design/foundation/ — charter, accepted decisions, slices.md:
+follow them, never override them>, and the code the request touches. Request: <request>. Answer in
+this reply, in <the user's language>, with these sections only:
+## Goal — who gets what  ## Flows — each actor's steps, happy path first
+## Policies and edge cases — rules, limits, permissions, failure, empty / duplicate / late input, each
+with its behaviour  ## Existing options — how products in this domain do it, searched today, sources
+with dates (or none)  ## Not doing  ## Open questions — business calls only, each with options and
+your recommendation
+Never decide a business call yourself: make it a question. Don't create or edit files.
 ```
 **S — worker spec**
 ```

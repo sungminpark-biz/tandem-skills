@@ -16,15 +16,19 @@ docs/design/foundation/
 1. **Inventory**: a foundation already exists → update it, don't recreate it. Read the existing docs,
    code and infra; one canonical place per decision (extract into the foundation, leave a pointer;
    whether to edit the user's docs is a charter question). Measure what exists, read-only.
-2. **Charter** (the user decides, Claude drafts; 1–2 pages):
+2. **Charter** (the user decides; 1–2 pages). Gemini drafts it (SKILL Rules: Product plan), started
+   with the inventory: template P asking, instead of P's sections, for the charter below (an existing
+   charter: the changes to it; `Stage` and caps as questions unless measured) plus candidate
+   milestones as user-visible capabilities. Claude corrects it against the inventory:
    ```
    One line: what, for whom · Who does what: core flows · Success / failure: observable signals ·
    Design caps: the scale to hold · Not doing · Stage: pre-launch | live (live = real users or
    customer data exist — in this service, or in another product on its database) · Open questions
    ```
    Every unknown is a question, never a guessed business decision: ask in batches of up to 4
-   (AskUserQuestion, recommended option first). **Gate**: show one line, caps, non-goals, open
-   questions; end your turn. Go on only on "OK" / "approve" / "go".
+   (AskUserQuestion, recommended option first). **Gate**: show one line, caps, non-goals, candidate
+   milestones, open questions, who drafted it (Gemini, or Claude and why); end your turn. Go on only
+   on "OK" / "approve" / "go".
 3. **Decisions**: only what is expensive to reverse once code or data depend on it. Check: data model
    and source of truth, identity/auth, tenancy and permissions, external integrations, money and
    document flow, runtime and background work, observability. Not a decision: how the team works
@@ -40,8 +44,10 @@ docs/design/foundation/
    dates · Consequences (a safety rule: its estimated cost per slice, and the cheaper option) ·
    Revisit when (an observable signal tied to the caps) · Not built
    ```
-4. **Milestone map** → `slices.md`. A milestone is one user-visible capability made of 2–4 slices; a
-   slice is what one reviewer can review in one pass (roughly ≤30 files, ≤1 hour of worker time).
+4. **Milestone map** → `slices.md`, from the candidate milestones approved with the charter: Claude
+   orders them (below) and names at the foundation gate any it merged, split, dropped or added. A milestone
+   is one user-visible capability made of 2–4 slices; a slice is what one reviewer can review in one
+   pass (roughly ≤30 files, ≤1 hour of worker time).
    M1 is a walking skeleton: the thinnest end-to-end path touching every decision once, outside
    production. Then order by risk (least-proven decision first), then value. Per slice: goal /
    decisions / scope (modules) / definition of done (SKILL Rules: Tests) / depends on / risk (money,
@@ -55,7 +61,7 @@ docs/design/foundation/
    ```
    ## Foundation ready — approval requested
    Charter one line · decisions (one line each, + what review changed) · M1 slices, later milestones
-   one line each · review: raised / accepted / rebutted · contested (your call) · open questions
+   one line each (candidate milestones merged, split, dropped or added, and why) · review: raised / accepted / rebutted · contested (your call) · open questions
    Reply "approve" and I'll propose M1, or tell me what to change.
    ```
    Approved → decisions `accepted`, then a milestone run for M1.
@@ -71,20 +77,24 @@ not followed: Orca worker"; a safety rule with its cost per slice) and the miles
 records it; the user keeps one by saying so, or drops it for good with a Change. The user saying so in
 the request ("you implement it") still wins.
 1. **Plan** (≤10 minutes, parallel Explore agents per area, plus SKILL step 1's search of today's
-   options when a slice picks something new): the milestone's slices not yet `done`, in
+   options when a slice picks something new, and the product plan (SKILL Rules) for the milestone's
+   capability when users see it and no milestone design doc has one, started first): the
+   milestone's slices not yet `done`, in
    dependency order, with ids (S<m>a, S<m>b… if missing). Slices with no dependency between them and
    no shared source files are **parallel**. A milestone design doc already exists (a stopped run) →
    re-check it against the current code; slices its `Approved:` line lists that are still valid go to
    Build with no new gate; any other slice, or a substantial change, goes through review and the gate.
-2. **One milestone design doc** `docs/design/<YYYYMMDD>-m<n>-<slug>.md`: shared interfaces and
-   migrations first, then template D per slice, then the full-suite commands for the milestone's end
+2. **One milestone design doc** `docs/design/<YYYYMMDD>-m<n>-<slug>.md`: the product plan (template
+   D's line, once for the milestone; the slices' D leave it out), shared interfaces and migrations first, then template D per
+   slice, then the full-suite commands for the milestone's end
    and the foundation lines it doesn't follow. Skip what the foundation already settled.
 3. **One review** (template R; the risk reviewer if any slice is risky; a big milestone gets one
    reviewer per group of slices), ≤2 rounds.
 4. **Milestone gate**, then end your turn:
    ```
    ## Milestone M<n> — approval requested
-   Design doc · implementer (agent · model; you may change it here) · slices in order (parallel
+   Design doc · product plan: Gemini | Claude (why) | none, and its assumptions · implementer
+   (agent · model; you may change it here) · slices in order (parallel
    groups marked), one line each · shared interfaces and
    migrations · risky slices · review: raised / accepted / rebutted · foundation lines not followed,
    and why · each slice ends with a local commit of its own files (no push; a fix from the full
@@ -146,7 +156,8 @@ expensive decision is needed), or on `/team foundation change: …`.
    --subject "Stop" --body "Stop: the design is changing. Don't edit further; send worker_done with
    --outcome failed and the files modified so far." --json`, wait for it to settle, release it (never
    on idle); set the slice `blocked: <reason>`. Without Orca, ask the user to stop their session.
-2. New decision record (`proposed`) superseding the old one; a charter edit gets a dated change line.
+2. New decision record (`proposed`) superseding the old one; a charter edit gets a dated change line
+   (Claude drafts both; the user decides).
 3. Review: reviewer + risk reviewer on what the change touches, ≤2 rounds. Show it; end your turn.
 4. Rejected → record `rejected`, charter edit reverted, slice back to its status. Approved → `accepted`,
    old record `superseded by NNN`; update affected `todo` slices; `done` slices built on the old
