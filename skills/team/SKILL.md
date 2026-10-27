@@ -7,7 +7,8 @@ description: >-
   (+ a risk reviewer for money, auth and, except before launch, data-changing migrations) -> user
   approval -> the worker implements
   -> code review by a different model + ponytail -> report. Founded services build a milestone at a
-  time: one milestone design, one review, one approval, then its slices back to back. Foundation mode
+  time: one milestone design, one review, one approval, then its slices back to back and one review of
+  the whole milestone alongside its full test suites. Foundation mode
   ("/team foundation <service>") drafts the charter, the expensive-to-reverse decisions and the
   milestone map with the user.
   Triggers: "/team", "/team foundation", "/team M3" (a milestone or slice), "design then have a worker
@@ -65,11 +66,12 @@ spec in the user's language and ask for the answer in it, keeping template headi
 - **Independent review.** Every design and every diff is reviewed by a read-only `team-reviewer`
   subagent. A **risk reviewer** joins in parallel for money, auth/permissions, every foundation
   review, and — except before launch (below) — migrations that change or drop existing data and
-  customer data; a project's foundation may name more. Every review prompt is
-  self-contained (paths, measured facts, the template) and ends with: "Review only: no edits, no
-  DB/MCP writes, no deploys, no integration tests that write. Stop after 30 tool calls (60 for a
-  milestone or foundation review) and list what you didn't check." Wait for every reviewer you
-  started, then check each finding against the code yourself; accept or rebut with evidence.
+  customer data; a project's foundation may name more. Every review prompt is self-contained (paths,
+  measured facts, the template) and ends with: "Review only: no edits, no DB/MCP writes, no deploys,
+  no integration tests that write. Stop after 30 tool calls (60 for a milestone design review, the
+  milestone review or a foundation review) and list what you didn't check." Wait for every reviewer
+  you started, then check each finding against the code yourself; accept, rebut with evidence, or
+  defer (Deferring a finding).
 - **Code is reviewed by a different model than its author**: written by Sonnet or a non-Claude agent
   → `model: "opus"`, otherwise `model: "sonnet"` (always pass it).
 - **Preflight**, once before the survey:
@@ -87,9 +89,18 @@ spec in the user's language and ask for the answer in it, keeping template headi
   design specifies.
 - **Rounds**: design review ≤2 and code review ≤2 — round 1 is the first review, round 2 re-checks
   only what changed. Still contested or not approved after round 2 → stop and report both sides.
-- **A design change after review** (a gate edit, a worker question, an accepted `ponytail-review`
-  item that changes an interface) → revise the doc, one review round on that change; a substantial
-  one shows the gate again.
+- **A design change after review** → revise the doc. A gate edit, a worker question or an accepted
+  `ponytail-review` item that changes an interface: one review round on that change. A review finding
+  that the design itself is wrong: the fix follows the revised line and the reviewer that raised it
+  checks both in its round 2. A substantial change shows the gate again.
+- **Deferring a finding** depends on the harm it can cause, never on slice or file boundaries ("this
+  slice doesn't touch the database"). One that can lose real data (not test data) or money, do
+  something that can't be undone, cut someone off, or show a real person something false is fixed in
+  this run — its own fix round, or in a milestone the milestone review's fix (`foundation.md` Build)
+  — and a business call in it goes to the user. Every deferral goes under `Deferred` in the design doc
+  with its reason; one held for the milestone review's fix is marked `→ milestone fix`. A deferred
+  Critical or required change is named in round 2 like a rebuttal; a review whose only open items
+  are deferred counts as approved once its round 2 doesn't contest a deferral.
 - **Parallel where it pays**: survey with parallel Explore agents per area; independent slices build in
   parallel, each in its own worktree; a large diff gets one reviewer per area. Survey agents — Explore
   and the agent searching today's options — get `model: "sonnet"`: they find and quote, Claude decides.
@@ -116,7 +127,8 @@ spec in the user's language and ask for the answer in it, keeping template headi
 - Messages, payments and paid APIs are never used to verify. A source you can't reach → write `not
   verified: <reason>`, never a guess. Post-review steps (applying a migration, deploying) wait for the
   code review's approval. Commit only when the user asks (a milestone approval covers its per-slice
-  local commits and their fix commits). Scratch files go to `/tmp/team/<slug>/`.
+  local commits, their fix commits and the milestone review's fix). Scratch files go to
+  `/tmp/team/<slug>/`.
 
 ## Feature
 1. **Survey** (≤10 minutes), with the product plan (Rules) running alongside when users see the
@@ -128,22 +140,23 @@ spec in the user's language and ask for the answer in it, keeping template headi
 2. **Design doc** `docs/design/<YYYYMMDD>-<slug>.md` (template D). Skeleton first, then fill in.
 3. **Design review** (template R): write `/tmp/team/<slug>/<name>-req.md` (paths, measured facts,
    template R) and start the reviewer (+ risk reviewer) in one message. Round 2 goes only to a
-   reviewer whose Critical you rebutted: SendMessage "Accepted: … → changed: … / Rebutted: … —
-   evidence: … / Re-check and answer in the same format."
+   reviewer whose Critical you rebutted or deferred: SendMessage "Accepted: … → changed: … /
+   Rebutted: … — evidence: … / Deferred: … — why: … / Re-check and answer in the same format."
 4. **Gate** (template G): show it, end your turn, wait.
 5. **Build**: the worker with the spec (template S). Claude doesn't edit source meanwhile. A
    worker question that changes the design → revise the doc before answering (foundation-level →
    `foundation.md` "Change").
 6. **Code review**, together: reviewer with template C (worktree path, changed files, design doc,
-   what to check hard); Claude checks `git diff --stat` against the reported files and the doc's
-   scope and re-runs the definition of done, minus `after <step>` commands (the worker's report is a
-   claim, not evidence); `ponytail-review` on the diff through the Skill tool — judge each item like a
-   finding (it never cuts validation, data-loss handling, security); a failed pass is reported, never
-   read as "lean already". Accepted items go back to the same worker as "Apply review: …"; in round 2
-   every reviewer that asked for changes re-checks only what changed. Once the code review approves a
-   feature, Claude runs its post-review steps (the user's: wait for their "done") and `after <step>`
-   commands, then the full suites (Rules: Tests); a milestone's slices leave the full suites to the end
-   of the run.
+   what to check hard — point to the design's sections instead of restating their rules: a restated
+   rule becomes the reviewer's answer key); Claude checks `git diff --stat` against the reported
+   files and the doc's scope and re-runs the definition of done, minus `after <step>` commands (the
+   worker's report is a claim, not evidence); `ponytail-review` on the diff through the Skill tool —
+   judge each item like a finding (it never cuts validation, data-loss handling, security); a failed
+   pass is reported, never read as "lean already". Accepted items go back to the same worker as
+   "Apply review: …"; in round 2 every reviewer that asked for changes re-checks only what changed.
+   Once the code review approves a feature, Claude runs its post-review steps (the user's: wait for
+   their "done") and `after <step>` commands, then the full suites (Rules: Tests); a milestone's
+   slices leave the full suites to the end of the run.
 7. **Report** (template T).
 
 ## Orca worker
@@ -192,26 +205,33 @@ Goal (one paragraph) · Product plan: flows, policies and edge cases as decided,
 Interfaces, schemas,
 signatures · Implementation order · Definition of done: the commands covering this change (Rules:
 Tests; `after <step>` for one that needs a post-review step) · Full suites (a milestone lists them
-once, at its end) · Do-not-touch · Not doing (and why)
+once, at its end) · Do-not-touch · Not doing (and why) · Production steps: what it needs to work in
+production (settings, secrets, schedulers, external setup), each with who and where, or none ·
+Deferred (findings any review left for later, each with why) — a milestone has these last two once,
+at its end
 + for anything new it picks: the options found today and why this one, with sources and dates
 ```
 **R — design review request**
 ```
 Break the design; list only problems, each with evidence (file:line / behaviour / contract). Check:
-files and call sites exist; signatures match the code; regressions, migrations, rollback; definition of
-done runnable and no wider than the change (no full suites, no repeats without a noted flake);
+files and call sites exist; signatures match the code; regressions, migrations, rollback; a row,
+field, state or setting whose meaning changes: every function, screen and job that reads or writes it
+is in the scope or under Not doing; definition of done runnable and no wider than the change (no full
+suites, no repeats without a noted flake);
 money/data: double-processing, races, state on failure; anything the implementer would have to guess;
 something in the repo, or available today, already does this (cite source and date); hand-rolled what
 the platform already provides (auth, queues, cron, rate limits); ponytail ladder on every component
 (needed at all? reuse? stdlib? native? one line?); contradicts the foundation; a flow or edge case the
-product plan or the design misses.
+product plan or the design misses, or a rule that fails on a real case (input → result); a production
+step missing.
 ## Critical (evidence required)  ## Missing  ## Ambiguous (questions)  ## Cut (ponytail)
 ## Verdict: needs revision | ready
 ```
 **C — code review format**
 ```
 ## Verdict: APPROVE | REQUEST_CHANGES
-## Spec check — quote the design line: missing or partial · not asked for · implemented but wrong
+## Spec check — quote the design line: missing or partial · not asked for · implemented but wrong ·
+the line itself fails in a real case (input → wrong result: the design can be wrong)
 ## Test check — each test added for new behaviour: fails with the change reverted? fed real input (or
 its real shape), not output of the code under test? A no is a required change.
 ## Required changes (file:line)   ## Suggestions   ## Test results (command, pass/fail, exit code)
@@ -221,7 +241,7 @@ its real shape), not output of the code under test? A no is a required change.
 ## Design ready — approval requested
 Document · one-line summary · product plan: Gemini | Claude (why) | none, and its assumptions ·
 implementer (agent · model; the user may change it here) · scope (N
-files) · key decisions · review: raised / accepted / rebutted
+files) · key decisions · review: raised / accepted / rebutted / deferred
 (a failed or partial review is stated) · not doing · definition of done · risks · foundation lines not
 followed, and why (a founded repo)
 Reply "approve" or "go", or tell me what to change.
@@ -256,7 +276,8 @@ worker_done in <the user's language>.
 not, with evidence (a file, a command's output) — a partly or not opens the report and the work is not
 called done · design doc · files · what review changed · code review rounds and fixes ·
 `ponytail-review` applied / rejected · tests and full suites (fresh output from your own run; after a
-fix, which ones re-ran) · open issues.
+fix, which ones re-ran) · production steps left to do (the design doc's: who, where) · open issues,
+and deferred findings with why.
 
 ## Gotchas
 - The reviewer is the `team-reviewer` agent (read-only, loads CLAUDE.md, resumable with SendMessage).

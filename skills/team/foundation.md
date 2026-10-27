@@ -86,8 +86,8 @@ the request ("you implement it") still wins.
    Build with no new gate; any other slice, or a substantial change, goes through review and the gate.
 2. **One milestone design doc** `docs/design/<YYYYMMDD>-m<n>-<slug>.md`: the product plan (template
    D's line, once for the milestone; the slices' D leave it out), shared interfaces and migrations first, then template D per
-   slice, then the full-suite commands for the milestone's end
-   and the foundation lines it doesn't follow. Skip what the foundation already settled.
+   slice, then the full-suite commands, Production steps and a Deferred section for the milestone's
+   end, and the foundation lines it doesn't follow. Skip what the foundation already settled.
 3. **One review** (template R; the risk reviewer if any slice is risky; a big milestone gets one
    reviewer per group of slices), ≤2 rounds.
 4. **Milestone gate**, then end your turn:
@@ -96,18 +96,21 @@ the request ("you implement it") still wins.
    Design doc · product plan: Gemini | Claude (why) | none, and its assumptions · implementer
    (agent · model; you may change it here) · slices in order (parallel
    groups marked), one line each · shared interfaces and
-   migrations · risky slices · review: raised / accepted / rebutted · foundation lines not followed,
+   migrations · risky slices · review: raised / accepted / rebutted / deferred · foundation lines not
+   followed,
    and why · each slice ends with a local commit of its own files (no push; a fix from the full
-   suites or an `after` command gets one more) · full suites at the end ·
+   suites, an `after` command or the milestone review gets one more) · full suites and a milestone
+   review at the end ·
    post-review steps (applying migrations…): who, where ·
-   stops and asks you only for: a Critical still contested after 2 rounds, a code review not approved
-   after 2 rounds, a merge conflict between parallel slices, full suites or an `after` command still
-   failing after one fix, a substantial design change, a foundation change, a business call, a
-   post-review step of yours, work beyond this list
+   stops and asks you only for: a Critical still contested after 2 rounds, a code review (a slice's or
+   the milestone review's) not approved after 2 rounds, a merge conflict between parallel slices,
+   full suites or an `after` command still failing after one fix, a substantial design change, a
+   foundation change, a business call, a post-review step of yours, work beyond this list
    Reply "approve" or "go", "only S<n>" for one slice, or tell me what to change.
    ```
-5. **Build**, no further approvals: first add `Approved: <date> (S…)` with the approved slices to the
-   design doc's header. One Orca run for the milestone.
+5. **Build**, no further approvals: first add `Approved: <date> (S…)` with the approved slices and
+   `Base: <HEAD now>` to the design doc's header (a resumed run keeps its `Base:`). One Orca run for
+   the milestone.
    - Dependent slices: one worker in the milestone worktree takes them one after another
      (`--terminal <handle>`), each with spec S naming its slice.
    - Parallel slices start once the slices they depend on are committed: one worker each, at most 3 at
@@ -127,8 +130,46 @@ the request ("you implement it") still wins.
    - Post-review steps: Claude's → run them, then the commands marked `after <step>`; the user's → mark
      `done (apply pending: <step>)` and stop; on their "done", run the marked commands and continue —
      no new gate. A failure: SKILL Rules: Tests.
-   - End of the run, every approved slice committed: Claude runs the full suites once; a failure:
-     SKILL Rules: Tests.
+   - End of the run, every approved slice committed: in one message Claude starts the full suites once
+     (`run_in_background`, `timeout` 7200000) and — when every slice of the milestone is now `done`
+     (a partial run leaves it to the run that finishes the milestone) — the **milestone review**:
+     `team-reviewer`s on `git diff <Base>..HEAD`, one per area — one for ≤30 files, else up to 3
+     (e.g. data and server code; screens and tests; docs and production steps) — with the prompt
+     below. No separate risk reviewer: the data and server reviewer also reads the risky slices for
+     that risk. Models: SKILL Rules (the docs area reviews Claude's writing: `sonnet`). Check each
+     reviewer's findings against the code as it returns. Once the suites have finished too, one fix
+     round takes the accepted findings, those marked `→ milestone fix` and suite failures that need a
+     fix (SKILL Rules: Tests): a worker in the milestone worktree, told which files the fixes may
+     touch (the doc's Scope doesn't limit it); the milestone reviewers whose findings it fixes
+     re-check it (SendMessage, round 2) — the rest of it (`→ milestone fix` items, suite fixes) goes
+     to the milestone reviewer of its area, or, in a run without a milestone review, to a template C
+     reviewer — and `ponytail-review` runs on its diff; then one local commit, which deletes the
+     `→ milestone fix` items it fixed from `Deferred`, and the re-runs SKILL Rules: Tests names.
+     Doc-only fixes Claude makes itself, in the same commit, re-checked by the reviewers whose
+     findings they fix; a foundation line changes here only to apply an `accepted` decision record
+     (anything else: Change).
+     ```
+     The finished milestone, reviewed whole: worktree <path>, `git diff <Base>..HEAD`, design doc
+     <path> (its Deferred section too), docs/design/foundation/. Slice reviews and passing tests are
+     not evidence: check afresh. Your area: <area>; read outside it only to follow a rule or data it
+     sets or changes. No tests (the full suites are running).
+     ## Verdict: APPROVE | REQUEST_CHANGES
+     ## Findings — most severe first: file:line, what is wrong, a real failure (input or state →
+     wrong result), evidence; a design line that fails is a finding; unverified → say so
+     ## Between slices — a rule one slice sets that another breaks; code, screens or jobs that read or
+     write what the milestone changed but no slice touched
+     ## Design vs build — missing or built differently: justified or not
+     ## Deferred — in your area, each deferred item that should have been fixed: it can lose real
+     data (not test data) or money, do something that can't be undone, cut someone off, or show a
+     real person something false ("this slice doesn't touch X" is no reason); skip items marked
+     `→ milestone fix`
+     <one reviewer only — the docs area, or the only reviewer:>
+     ## Production steps — what the built code needs to work in production (settings, secrets,
+     schedulers, external setup), steps carried over in earlier design docs (docs/design/) included:
+     each in this design doc's Production steps?
+     ## Stale docs — CLAUDE.md files, README, foundation lines this milestone made wrong
+     ## Not checked
+     ```
    - Without Orca: hand the user one slice spec at a time; they come back for its review.
 6. **Stopping** (only the gate's stop items): start no new worker; let running slices the stop doesn't
    touch finish review and commit; wait for running reviewers; release settled workers (never on idle);
@@ -136,17 +177,21 @@ the request ("you implement it") still wins.
    end your turn — for a Change, its approval request (Change step 3) is the report. A code review not
    approved after round 2 stays uncommitted: the user picks one more round (a new worker in that
    slice's worktree), accept as is, or drop it (revert that slice's files; a child:
-   `orca worktree rm --force`); then the run continues with no new gate. Full suites or an `after`
+   `orca worktree rm --force`); then the run continues with no new gate. The milestone review's fix
+   not approved after round 2 stays uncommitted and every slice stays `done`: the user picks one more
+   round, accepts it as is, or drops it (revert the fix's files; its `→ milestone fix` items become
+   `dropped by the user`, named first in the report). Full suites or an `after`
    command still failing: committed slices stay `done`; the user picks one more fix round or accepts
    it as is (the report names the failing tests).
 7. **Report**: one template T for the milestone (a line per slice: files, commit, review fixes,
-   tests; then the full suites), then the next milestone in one line. Start it only when the user
+   tests; then the full suites and the milestone review: raised / fixed / rebutted / deferred and
+   why), then the next milestone in one line. Start it only when the user
    says so.
 
 **Launch**: when the user sets `Stage: live`, run one risk review of the auth, customer-data and money
 code built so far (one reviewer per area), turn its findings into fix slices, propose a Change for the
 safety rules marked `Revisit when: launch` or recorded in design docs as not followed before
-launch, and add
+launch, turn design docs' `Deferred` items that only test data made safe into fix slices, and add
 `launch risk review: <date>` to the charter.
 
 ## Change

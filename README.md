@@ -47,7 +47,7 @@ from the one that wrote it.
 
 | Skill | What it does |
 |---|---|
-| `/team` | Feature: the product plan → design → adversarial review → approval → implement → code review loop above. Foundation: charter → decision records → milestone map → review → approval. Milestone run: one design and one approval per milestone, then its slices built and reviewed back to back |
+| `/team` | Feature: the product plan → design → adversarial review → approval → implement → code review loop above. Foundation: charter → decision records → milestone map → review → approval. Milestone run: one design and one approval per milestone, then its slices built and reviewed back to back, then one review of the whole milestone |
 | `/debate` | Claude drafts, a read-only critic on a different model (Sonnet when the driver is Opus) attacks it in rounds, Claude verifies each point against the code and reports the consensus. Used stand-alone for design decisions |
 
 ## Requirements
@@ -106,18 +106,18 @@ Claude will:
 2. get an adversarial review from the read-only `team-reviewer` subagent (critical / missing /
    ambiguous, and what ponytail's ladder would cut, with evidence) — plus a risk reviewer for money and
    auth, and after launch for data-changing migrations and customer data — check each item against the
-   code, and revise the doc or rebut
+   code, and revise the doc, rebut, or defer, with its reason, what can't do real harm
 3. **stop and show you a summary — nothing is implemented until you say "approve"**
 4. spawn the worker in Orca (`worker-start --spec … --agent claude --model sonnet`, or `--agent gemini`
    and the like when you named another agent — it runs its own configured model), which writes the
    code with ponytail inside the design's scope, and answer its questions
 5. review the diff (a spec check: missing, unrequested, implemented-but-wrong, each quoting the
-   design; a test check: each new test fails with the change reverted and is fed real input, not the
-   code's own output), re-run the definition of done itself rather than trusting the worker's report,
-   run `ponytail-review`, and dispatch fixes to the same worker until approved (max 2 rounds), then
-   run the full test suites once
+   design, or a design line that itself fails in a real case; a test check: each new test fails with
+   the change reverted and is fed real input, not the code's own output), re-run the definition of
+   done itself rather than trusting the worker's report, run `ponytail-review`, and dispatch fixes to
+   the same worker until approved (max 2 rounds), then run the full test suites once
 6. report: first whether each goal of your request was met (met / partly / not, with evidence), then
-   what the review changed, files touched, tests
+   what the review changed, files touched, tests, production steps left to do, deferred findings
 
 Say "you implement it" and Claude writes the
 code itself instead of a worker; the review step stays the same. `sonnet` is an alias, so the worker
@@ -160,12 +160,15 @@ Claude will:
 
 Then build it a milestone at a time: `/team M3` (a milestone or slice name). When users see the
 milestone, Gemini plans it first. Claude writes one design doc for the whole milestone (the plan and
-shared interfaces first, then each slice), gets it reviewed once, and you
-approve once. The slices are then built back to back: one worker takes dependent slices one
-after another, independent slices get their own worker in a child worktree in parallel, and every
-slice gets its code review and a local commit. You get one report at the end; the run stops early
-only for a contested Critical, a code review not approved in 2 rounds, tests still failing after a
-fix, a foundation change, a business call, or work beyond the list.
+shared interfaces first, then each slice), gets it reviewed once, and you approve once. The slices
+are then built back to back: one worker takes dependent slices one after another, independent slices
+get their own worker in a child worktree in parallel, and every slice gets its code review and a
+local commit. When the last slice is in, the full suites run and, at the same time, up to three fresh
+reviewers read the whole milestone — what lies between slices, design lines that fail, deferred
+findings, the steps production needs, docs it made stale — and accepted findings get one fix round.
+You get one report at the end; the run stops early only for a contested Critical, a code review not
+approved in 2 rounds, tests still failing after a fix, a foundation change, a business call, or work
+beyond the list.
 
 Foundation docs are canonical for what gets built, and for the safety rules that follow from it (say,
 "messages go only to test numbers until launch"): feature designs cite them and never override them.
@@ -205,6 +208,11 @@ Other details that came out of real runs:
   Opus at high effort will otherwise explore for 20+ minutes before writing a word.
 - Tests run narrow per slice (what the change touches, once) and full once at the end: in real runs,
   full suites after every slice and "3 times in a row" checks took a large share of a milestone.
+- Slice reviews check one slice against the design, so a mistake in the design or between slices
+  passes them all. In a real run a fresh whole-milestone review caught several (a design rule missing
+  a condition, an untouched function a slice changed the meaning of, a finding deferred by slice
+  boundary, missing production steps) in about 12 minutes; the full suites take 23–35, so it runs
+  alongside them.
 - The reviewer is a custom subagent, not the built-in `Plan` agent: `Plan` is one-shot (no agent ID),
   so a second review round can't reach it, and it skips `CLAUDE.md`.
 - Orca types its `You have N orchestration message…` notices into the driver's terminal as user turns;
@@ -226,6 +234,8 @@ Other details that came out of real runs:
   `claude --model sonnet`. Design, review and foundation mode work anywhere.
 - Milestone runs as described here (one design per milestone, parallel slices in child worktrees)
   haven't had a full run yet — watch the first one.
+- The milestone review has not run as written yet: it was tried once by hand, after a milestone had
+  been reported done.
 - A worker can park on a prompt only a human can answer (plan-mode entry, a question card). The skill
   detects it through `worker-show`'s `agentWait` and answers it, but watch the tab.
 - Orca (since late September 2026) pre-trusts the folder wherever it starts an agent; on older Orca a
