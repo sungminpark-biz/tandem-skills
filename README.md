@@ -208,6 +208,9 @@ Other details that came out of real runs:
   Opus at high effort will otherwise explore for 20+ minutes before writing a word.
 - Tests run narrow per slice (what the change touches, once) and full once at the end: in real runs,
   full suites after every slice and "3 times in a row" checks took a large share of a milestone.
+- Reviewers don't re-run the tests Claude runs: in real runs every code review ran tests, mostly the
+  ones Claude had just run (about a minute each), and one ran the whole unit suite for 18 minutes. A reviewer still runs a test to
+  check one thing, such as a test failing on a copy with the change reverted.
 - Slice reviews check one slice against the design, so a mistake in the design or between slices
   passes them all. In a real run a fresh whole-milestone review caught several (a design rule missing
   a condition, an untouched function a slice changed the meaning of, a finding deferred by slice

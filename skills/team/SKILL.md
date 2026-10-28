@@ -68,9 +68,11 @@ spec in the user's language and ask for the answer in it, keeping template headi
   review, and — except before launch (below) — migrations that change or drop existing data and
   customer data; a project's foundation may name more. Every review prompt is self-contained (paths,
   measured facts, the template) and ends with: "Review only: no edits, no DB/MCP writes, no deploys,
-  no integration tests that write. Stop after 30 tool calls (60 for a milestone design review, the
-  milestone review or a foundation review) and list what you didn't check." Wait for every reviewer
-  you started, then check each finding against the code yourself; accept, rebut with evidence, or
+  no integration tests that write. Don't re-run the definition of done or a full suite: Claude runs
+  them. Run a test only to check one thing, e.g. that a test fails on a copy outside the repo with
+  the change reverted. Stop after 30 tool calls (60 for a milestone design review, the milestone
+  review or a foundation review) and list what you didn't check." Wait for every reviewer you
+  started, then check each finding against the code yourself; accept, rebut with evidence, or
   defer (Deferring a finding).
 - **Code is reviewed by a different model than its author**: written by Sonnet or a non-Claude agent
   → `model: "opus"`, otherwise `model: "sonnet"` (always pass it).
@@ -234,7 +236,7 @@ step missing.
 the line itself fails in a real case (input → wrong result: the design can be wrong)
 ## Test check — each test added for new behaviour: fails with the change reverted? fed real input (or
 its real shape), not output of the code under test? A no is a required change.
-## Required changes (file:line)   ## Suggestions   ## Test results (command, pass/fail, exit code)
+## Required changes (file:line)   ## Suggestions
 ```
 **G — approval gate**
 ```

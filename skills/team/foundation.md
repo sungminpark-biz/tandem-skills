@@ -152,7 +152,7 @@ the request ("you implement it") still wins.
      The finished milestone, reviewed whole: worktree <path>, `git diff <Base>..HEAD`, design doc
      <path> (its Deferred section too), docs/design/foundation/. Slice reviews and passing tests are
      not evidence: check afresh. Your area: <area>; read outside it only to follow a rule or data it
-     sets or changes. No tests (the full suites are running).
+     sets or changes. No tests, not even to check one thing: the full suites are running.
      ## Verdict: APPROVE | REQUEST_CHANGES
      ## Findings — most severe first: file:line, what is wrong, a real failure (input or state →
      wrong result), evidence; a design line that fails is a finding; unverified → say so
