@@ -95,12 +95,15 @@ replies into English.
   reviewer per area. Survey agents find and quote; the coordinator decides.
 - **Tests: narrow per change, full once** (how often and how widely tests run is how the team works).
   - A definition of done names the tests covering the change — lint, types, and the unit, integration
-    and e2e tests it touches. The worker runs it once at the end, the coordinator once in review; a
-    fix round re-runs only what failed and what covers the files it changed. A command that needs a
-    post-review step (a migration applied) is marked `after <step>` and runs right after that step.
-  - The full suites — every test command the project has, lint and types included, or `none` — are
-    listed once in the design and run once by the coordinator: when the code review approves a
-    feature, or at the end of a milestone run.
+    and e2e tests it touches (leave full production builds such as `next build` to the full suites
+    unless the change touches build/bundler config). The worker runs it once at the end, the
+    coordinator once in review; a fix round re-runs only what failed and what covers the files it
+    changed. A command that needs a post-review step (a migration applied) is marked `after <step>`
+    and runs right after that step.
+  - The full suites — every test command the project has, lint, types and build included, or `none` —
+    are listed once in the design and run once by the coordinator: when the code review approves a
+    feature, or at the end of a milestone run (skipping any command the coordinator already ran and
+    passed on the exact same tree with no fix or post-review step in between).
   - Repeated runs ("3 times in a row") only for a test the design notes as flaky, citing the run that
     showed it. A suite that can't run part of itself (the design proposes a filter) runs once at the
     end of a change that edits it, otherwise only with the full suites.
@@ -137,13 +140,14 @@ replies into English.
 5. **Build**: the worker with the spec (template S). The coordinator doesn't edit source meanwhile. A
    worker question that changes the design → revise the doc before answering (foundation-level →
    `foundation.md` "Change").
-6. **Code review**, together: `invoke_agent(agent_name="team-reviewer", ...)` with template C
-   (worktree path, changed files, design doc, what to check hard — point to the design's sections
-   instead of restating their rules: a restated rule becomes the reviewer's answer key; the
-   reviewer's shell is read-only and runs no tests); the coordinator checks `git diff --stat` against
-   the reported files and the doc's scope and re-runs the definition of done, minus `after <step>`
-   commands (the worker's report is a claim, not evidence); activate `ponytail-review` via
-   `activate_skill(name="ponytail-review")` and review the diff — judge each item like a finding (it
+6. **Code review**, together in a single parallel turn: `invoke_agent(agent_name="team-reviewer", ...)`
+   with template C (worktree path, changed files, design doc, what to check hard — point to the
+   design's sections instead of restating their rules: a restated rule becomes the reviewer's answer
+   key; the reviewer's shell is read-only and runs no tests); in the same turn, activate
+   `ponytail-review` via `activate_skill(name="ponytail-review")` AND run a shell command that checks
+   `git diff --stat` against the reported files and the doc's scope, prints `git diff` for your
+   `ponytail-review` pass, and re-runs the definition of done, minus `after <step>` commands (the
+   worker's report is a claim, not evidence). Judge each `ponytail-review` item like a finding (it
    never cuts validation, data-loss handling, security); a failed pass is reported, never read as
    "lean already". Accepted items go back to the same worker as "Apply review: …"; in round 2 every
    reviewer that asked for changes re-checks only what changed. Once the code review approves a

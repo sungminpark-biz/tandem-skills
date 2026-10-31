@@ -108,12 +108,15 @@ spec in the user's language and ask for the answer in it, keeping template headi
   and the agent searching today's options — get `model: "sonnet"`: they find and quote, Claude decides.
 - **Tests: narrow per change, full once** (how often and how widely tests run is how the team works).
   - A definition of done names the tests covering the change — lint, types, and the unit, integration
-    and e2e tests it touches. The worker runs it once at the end, Claude once in review; a fix round
-    re-runs only what failed and what covers the files it changed. A command that needs a post-review
-    step (a migration applied) is marked `after <step>` and runs right after that step.
-  - The full suites — every test command the project has, lint and types included, or `none` — are
-    listed once in the design and run once by Claude: when the code review approves a feature, or at
-    the end of a milestone run.
+    and e2e tests it touches (leave full production builds such as `next build` to the full suites
+    unless the change touches build/bundler config). The worker runs it once at the end, Claude once
+    in review; a fix round re-runs only what failed and what covers the files it changed. A command
+    that needs a post-review step (a migration applied) is marked `after <step>` and runs right after
+    that step.
+  - The full suites — every test command the project has, lint, types and build included, or `none` —
+    are listed once in the design and run once by Claude: when the code review approves a feature, or
+    at the end of a milestone run (skipping any command Claude already ran and passed on the exact
+    same tree with no fix or post-review step in between).
   - Repeated runs ("3 times in a row") only for a test the design notes as flaky, citing the run that
     showed it. A suite that can't run part of itself (the design proposes a filter) runs once at the
     end of a change that edits it, otherwise only with the full suites.
