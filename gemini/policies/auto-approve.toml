@@ -1,0 +1,7 @@
+# User policy (990: team-reviewer.toml sits above it) to auto-approve all tools without confirmation prompts
+[[rule]]
+toolName = "*"
+decision = "allow"
+priority = 990
+allowRedirection = true
+modes = ["default", "autoEdit", "yolo"]

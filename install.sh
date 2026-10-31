@@ -1,55 +1,103 @@
 #!/usr/bin/env bash
-# Installs the tandem skills into ~/.claude/skills/.
+# Installs the tandem skills into ~/.claude/ (Claude Code) and ~/.gemini/ (Gemini CLI).
 #
-#   ./install.sh          copy  (default)
-#   ./install.sh --link   symlink to this checkout so `git pull` updates the skills in place
+#   ./install.sh                  copy into both ~/.claude and ~/.gemini (default)
+#   ./install.sh --link           symlink to this checkout so `git pull` updates in place
+#   ./install.sh --claude         install only for Claude Code
+#   ./install.sh --gemini         install only for Gemini CLI
+#   ./install.sh --gemini --link  combinable
 #
-# Also installs the team-reviewer subagent into ~/.claude/agents/.
-# An existing ~/.claude/skills/team or /debate is moved to ~/.claude/skills-backup/<name>.<timestamp>, never deleted
-# (an existing team-reviewer.md likewise goes to ~/.claude/agents-backup/).
+# Existing files/folders are moved to *-backup/<name>.<timestamp> outside the active
+# skills/agents/policies directories so they are never loaded as duplicates.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEST="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
-MODE="${1:-copy}"
+MODE="copy"
+DO_CLAUDE=0
+DO_GEMINI=0
 
-mkdir -p "$DEST"
-for skill in team debate; do
-  target="$DEST/$skill"
+for arg in "$@"; do
+  case "$arg" in
+    --link) MODE="--link" ;;
+    --claude) DO_CLAUDE=1 ;;
+    --gemini) DO_GEMINI=1 ;;
+    *)
+      echo "Usage: $0 [--link] [--claude] [--gemini]" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ "$DO_CLAUDE" -eq 0 && "$DO_GEMINI" -eq 0 ]]; then
+  DO_CLAUDE=1
+  DO_GEMINI=1
+fi
+
+install_item() {
+  local src="$1"
+  local target="$2"
+  local backup_dir="$3"
+  local label="$4"
+
+  mkdir -p "$(dirname "$target")"
+  if [[ "$MODE" == "--link" && -L "$target" && "$(readlink "$target")" == "$src" ]]; then
+    echo "already linked $label -> $target"
+    return
+  fi
   if [[ -e "$target" || -L "$target" ]]; then
-    # Move aside OUTSIDE the skills dir — anything left inside would be loaded as a duplicate skill.
-    mkdir -p "$DEST-backup"
-    backup="$DEST-backup/$skill.$(date +%Y%m%d%H%M%S)"
+    mkdir -p "$backup_dir"
+    local ts
+    ts="$(date +%Y%m%d%H%M%S)"
+    local backup="$backup_dir/$(basename "$target").$ts"
+    if [[ -e "$backup" || -L "$backup" ]]; then
+      backup="$backup.$$"
+    fi
     mv "$target" "$backup"
     echo "existing $target moved to $backup"
   fi
   if [[ "$MODE" == "--link" ]]; then
-    ln -s "$HERE/skills/$skill" "$target"
+    ln -s "$src" "$target"
   else
-    cp -R "$HERE/skills/$skill" "$target"
+    cp -R "$src" "$target"
   fi
-  echo "installed $skill -> $target"
-done
+  echo "installed $label -> $target"
+}
 
-# The team skill's read-only reviewer subagent (resumable, unlike the built-in Plan agent).
-AGENTS="${CLAUDE_AGENTS_DIR:-$HOME/.claude/agents}"
-agent="$AGENTS/team-reviewer.md"
-mkdir -p "$AGENTS"
-if [[ -e "$agent" || -L "$agent" ]]; then
-  mkdir -p "$AGENTS-backup"
-  backup="$AGENTS-backup/team-reviewer.md.$(date +%Y%m%d%H%M%S)"
-  mv "$agent" "$backup"
-  echo "existing $agent moved to $backup"
+if [[ "$DO_CLAUDE" -eq 1 ]]; then
+  CLAUDE_SKILLS="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
+  for skill in team debate; do
+    install_item "$HERE/skills/$skill" "$CLAUDE_SKILLS/$skill" "$CLAUDE_SKILLS-backup" "claude skill $skill"
+  done
+
+  CLAUDE_AGENTS="${CLAUDE_AGENTS_DIR:-$HOME/.claude/agents}"
+  install_item "$HERE/agents/team-reviewer.md" "$CLAUDE_AGENTS/team-reviewer.md" "$CLAUDE_AGENTS-backup" "claude agent team-reviewer"
 fi
-if [[ "$MODE" == "--link" ]]; then
-  ln -s "$HERE/agents/team-reviewer.md" "$agent"
-else
-  cp "$HERE/agents/team-reviewer.md" "$agent"
+
+if [[ "$DO_GEMINI" -eq 1 ]]; then
+  GEMINI_HOME="${GEMINI_HOME_DIR:-$HOME/.gemini}"
+  GEMINI_SKILLS="${GEMINI_SKILLS_DIR:-$GEMINI_HOME/skills}"
+  for skill in team debate; do
+    install_item "$HERE/gemini/skills/$skill" "$GEMINI_SKILLS/$skill" "$GEMINI_SKILLS-backup" "gemini skill $skill"
+  done
+
+  GEMINI_AGENTS="${GEMINI_AGENTS_DIR:-$GEMINI_HOME/agents}"
+  install_item "$HERE/gemini/agents/team-reviewer.md" "$GEMINI_AGENTS/team-reviewer.md" "$GEMINI_AGENTS-backup" "gemini agent team-reviewer"
+
+  GEMINI_POLICIES="${GEMINI_POLICIES_DIR:-$GEMINI_HOME/policies}"
+  install_item "$HERE/gemini/policies/team-reviewer.toml" "$GEMINI_POLICIES/team-reviewer.toml" "$GEMINI_POLICIES-backup" "gemini policy team-reviewer.toml"
+
+  install_item "$HERE/gemini/team-reviewer-probe.mjs" "$GEMINI_HOME/team-reviewer-probe.mjs" "$GEMINI_HOME/policies-backup" "gemini probe team-reviewer-probe.mjs"
 fi
-echo "installed team-reviewer agent -> $agent"
 
 echo
 echo "Check:"
-echo "  claude:  type /team or /debate in a Claude Code session (team-reviewer shows up in a new session)"
-echo "  ponytail (required by /team): /plugin marketplace add DietrichGebert/ponytail,"
-echo "           then /plugin install ponytail@ponytail in Claude Code"
+if [[ "$DO_CLAUDE" -eq 1 ]]; then
+  echo "  claude:  type /team or /debate in a Claude Code session (team-reviewer shows up in a new session)"
+  echo "  ponytail (required by /team): /plugin marketplace add DietrichGebert/ponytail,"
+  echo "           then /plugin install ponytail@ponytail in Claude Code"
+fi
+if [[ "$DO_GEMINI" -eq 1 ]]; then
+  echo "  gemini:  use /team or /debate in a Gemini CLI / Orca IDE session (restart session to reload)"
+  echo "  ponytail (required by /team): ensure ponytail and ponytail-review are in ~/.gemini/skills/"
+  echo "  policy:  node ~/.gemini/team-reviewer-probe.mjs"
+fi

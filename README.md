@@ -73,9 +73,9 @@ Tested with Claude Code 2.1.273–2.1.286 (Claude Opus 5 / 5.5 driver, Sonnet 5.
 
 ```bash
 git clone https://github.com/sungminpark-biz/tandem-skills.git
-cd tandem-skills && ./install.sh          # copies skills/ into ~/.claude/skills/ and the
-                                          # team-reviewer subagent into ~/.claude/agents/
-# or: ./install.sh --link          # symlink, so `git pull` updates in place
+cd tandem-skills && ./install.sh          # copies into both ~/.claude/ and ~/.gemini/
+# or: ./install.sh --link                 # symlink, so `git pull` updates in place
+# or: ./install.sh --claude / --gemini    # install for one CLI only
 ```
 
 ponytail (required) — two separate prompts in Claude Code:
@@ -84,7 +84,8 @@ ponytail (required) — two separate prompts in Claude Code:
 /plugin install ponytail@ponytail
 ```
 
-Check: open a new Claude Code session and type `/team` or `/debate`.
+Check: open a new Claude Code or Gemini CLI / Orca IDE session and type `/team` or `/debate`.
+For Gemini CLI, verify the read-only reviewer policy with `node ~/.gemini/team-reviewer-probe.mjs`.
 
 ## Usage
 
@@ -248,12 +249,18 @@ Other details that came out of real runs:
 
 ```
 skills/
-  team/SKILL.md          routing, rules, feature flow, Orca worker commands, templates
+  team/SKILL.md          routing, rules, feature flow, Orca worker commands, templates (Claude Code)
   team/foundation.md     found / milestone run / change   (read only for those routes)
   team/plan-policy.toml  Gemini CLI policy for the product plan: read files and search the web only
-  debate/SKILL.md        the debate loop
+  debate/SKILL.md        the debate loop (Claude Code)
 agents/
-  team-reviewer.md       read-only, resumable reviewer / critic subagent for /team and /debate
+  team-reviewer.md       read-only, resumable reviewer / critic subagent for Claude Code
+gemini/
+  skills/team/           /team skill and foundation.md adapted for Gemini CLI (and Orca IDE)
+  skills/debate/         /debate skill adapted for Gemini CLI
+  agents/                team-reviewer subagent for Gemini CLI
+  policies/              team-reviewer.toml read-only PolicyEngine rules for team-reviewer
+  team-reviewer-probe.mjs PolicyEngine verification script for ~/.gemini/policies
 install.sh
 ```
 

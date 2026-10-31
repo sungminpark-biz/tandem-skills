@@ -1,0 +1,52 @@
+# /team and /debate reviewer (~/.gemini/agents/team-reviewer.md): reads only.
+# Sits above auto-approve.toml (990); keep that one below 995 or these rules lose.
+# Gemini skips a rule it can't parse or calls unsafe ("potential ReDoS": no nested quantifiers):
+# after editing, run `node ~/.gemini/team-reviewer-probe.mjs` (exit 1 on any mismatch).
+# An unparsable shell command (e.g. `cat x ) ; touch y ; ( :`) is denied only because the local
+# bundle patch was narrowed on 2026-10-26 (chunk-DKZARV6U.js, "a subagent-scoped allow never
+# passes an unparsable command"); reinstalling or re-patching Gemini CLI loses that.
+
+[[rule]]
+subagent = "team-reviewer"
+toolName = "*"
+decision = "deny"
+priority = 995
+denyMessage = "Reviewer is read-only: read_file, grep_search, glob, list_directory, web search; shell: git diff/show/log/status/blame/ls-files/rev-parse/merge-base (git -C <path> ok), cat, head, tail, wc, ls, grep."
+
+[[rule]]
+subagent = "team-reviewer"
+toolName = "*"
+mcpName = "*"
+decision = "deny"
+priority = 995
+denyMessage = "Reviewer is read-only: no MCP tools."
+
+[[rule]]
+subagent = "team-reviewer"
+toolName = ["read_file", "read_many_files", "grep_search", "glob", "list_directory", "web_fetch", "google_web_search", "update_topic", "complete_task"]
+decision = "allow"
+priority = 997
+
+[[rule]]
+subagent = "team-reviewer"
+toolName = "run_shell_command"
+commandPrefix = ["git diff", "git show", "git log", "git status", "git blame", "git ls-files", "git rev-parse", "git merge-base", "cat", "head", "tail", "wc", "ls", "grep"]
+decision = "allow"
+priority = 997
+
+[[rule]]
+subagent = "team-reviewer"
+toolName = "run_shell_command"
+commandRegex = 'git -C [^ "]+ (diff|show|log|status|blame|ls-files|rev-parse|merge-base)( |")'
+decision = "allow"
+priority = 997
+
+# Redirection, command substitution and git's --output write files even from an allowed command.
+# [^\x00]: the engine wraps each top-level argument in NULs, so this stays inside the command.
+[[rule]]
+subagent = "team-reviewer"
+toolName = "run_shell_command"
+commandRegex = '[^\x00]*([<>]|\$\(|`|--output)'
+decision = "deny"
+priority = 999
+denyMessage = "Reviewer shell: no < or > anywhere (2>&1 too), no $(...) or backticks, no --output."

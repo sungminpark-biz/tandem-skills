@@ -68,9 +68,9 @@ Gemini CLI 0.65.0 (기획 호출만, 전체 실행은 아직), macOS에서 테�
 
 ```bash
 git clone https://github.com/sungminpark-biz/tandem-skills.git
-cd tandem-skills && ./install.sh          # skills/ 를 ~/.claude/skills/ 로, team-reviewer
-                                          # 서브에이전트를 ~/.claude/agents/ 로 복사
-# 또는: ./install.sh --link        # 심볼릭 링크 — git pull 하면 바로 반영
+cd tandem-skills && ./install.sh          # ~/.claude/ 와 ~/.gemini/ 양쪽에 복사 설치
+# 또는: ./install.sh --link               # 심볼릭 링크 — git pull 하면 바로 반영
+# 또는: ./install.sh --claude / --gemini  # 한쪽 CLI에만 설치
 ```
 
 ponytail (필수) — Claude Code에서 프롬프트 두 번에 나눠서:
@@ -79,7 +79,8 @@ ponytail (필수) — Claude Code에서 프롬프트 두 번에 나눠서:
 /plugin install ponytail@ponytail
 ```
 
-확인: 새 Claude Code 세션을 열고 `/team` 또는 `/debate`를 입력.
+확인: 새 Claude Code 또는 Gemini CLI / Orca IDE 세션을 열고 `/team` 또는 `/debate`를 입력.
+Gemini CLI에서는 `node ~/.gemini/team-reviewer-probe.mjs`로 읽기 전용 리뷰어 정책을 검증할 수 있습니다.
 
 ## 사용법
 
@@ -233,12 +234,18 @@ Claude가:
 
 ```
 skills/
-  team/SKILL.md          경로, 규칙, 기능 흐름, Orca 워커 명령, 템플릿
+  team/SKILL.md          경로, 규칙, 기능 흐름, Orca 워커 명령, 템플릿 (Claude Code)
   team/foundation.md     기초 설계 / 마일스톤 실행 / 변경   (그 경로를 탈 때만 읽음)
   team/plan-policy.toml  제품 기획용 Gemini CLI 정책: 파일 읽기와 웹 검색만
-  debate/SKILL.md        논의 루프
+  debate/SKILL.md        논의 루프 (Claude Code)
 agents/
-  team-reviewer.md       /team과 /debate용 읽기 전용·재개 가능한 리뷰어/반론자 서브에이전트
+  team-reviewer.md       Claude Code용 읽기 전용·재개 가능한 리뷰어/반론자 서브에이전트
+gemini/
+  skills/team/           Gemini CLI (및 Orca IDE)용 /team 스킬과 foundation.md
+  skills/debate/         Gemini CLI용 /debate 스킬
+  agents/                Gemini CLI용 team-reviewer 서브에이전트
+  policies/              team-reviewer 읽기 전용 PolicyEngine 규칙 (team-reviewer.toml)
+  team-reviewer-probe.mjs ~/.gemini/policies 검증 스크립트
 install.sh
 ```
 
