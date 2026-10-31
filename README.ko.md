@@ -73,7 +73,7 @@ cd tandem-skills && ./install.sh          # ~/.claude/ 와 ~/.gemini/ 양쪽에 
 # 또는: ./install.sh --claude / --gemini  # 한쪽 CLI에만 설치
 ```
 
-ponytail (필수) — Claude Code에서 프롬프트 두 번에 나눠서:
+ponytail (필수 — Gemini CLI는 `install.sh`가 함께 설치하며, Claude Code에서는 아래 프롬프트 두 번에 나눠서 설치):
 ```
 /plugin marketplace add DietrichGebert/ponytail
 /plugin install ponytail@ponytail
@@ -243,6 +243,8 @@ agents/
 gemini/
   skills/team/           Gemini CLI (및 Orca IDE)용 /team 스킬과 foundation.md
   skills/debate/         Gemini CLI용 /debate 스킬
+  skills/ponytail/       Gemini CLI용 ponytail 스킬
+  skills/ponytail-review/ Gemini CLI용 ponytail-review 스킬
   agents/                Gemini CLI용 team-reviewer 서브에이전트
   policies/              team-reviewer 읽기 전용 PolicyEngine 규칙 (team-reviewer.toml)
   team-reviewer-probe.mjs ~/.gemini/policies 검증 스크립트

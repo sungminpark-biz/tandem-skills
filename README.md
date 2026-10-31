@@ -78,7 +78,7 @@ cd tandem-skills && ./install.sh          # copies into both ~/.claude/ and ~/.g
 # or: ./install.sh --claude / --gemini    # install for one CLI only
 ```
 
-ponytail (required) — two separate prompts in Claude Code:
+ponytail (required; bundled automatically for Gemini CLI, install via plugin in Claude Code):
 ```
 /plugin marketplace add DietrichGebert/ponytail
 /plugin install ponytail@ponytail
@@ -258,6 +258,8 @@ agents/
 gemini/
   skills/team/           /team skill and foundation.md adapted for Gemini CLI (and Orca IDE)
   skills/debate/         /debate skill adapted for Gemini CLI
+  skills/ponytail/       ponytail skill bundled for Gemini CLI
+  skills/ponytail-review/ ponytail-review skill bundled for Gemini CLI
   agents/                team-reviewer subagent for Gemini CLI
   policies/              team-reviewer.toml read-only PolicyEngine rules for team-reviewer
   team-reviewer-probe.mjs PolicyEngine verification script for ~/.gemini/policies

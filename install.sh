@@ -76,7 +76,7 @@ fi
 if [[ "$DO_GEMINI" -eq 1 ]]; then
   GEMINI_HOME="${GEMINI_HOME_DIR:-$HOME/.gemini}"
   GEMINI_SKILLS="${GEMINI_SKILLS_DIR:-$GEMINI_HOME/skills}"
-  for skill in team debate; do
+  for skill in team debate ponytail ponytail-review; do
     install_item "$HERE/gemini/skills/$skill" "$GEMINI_SKILLS/$skill" "$GEMINI_SKILLS-backup" "gemini skill $skill"
   done
 
@@ -98,6 +98,5 @@ if [[ "$DO_CLAUDE" -eq 1 ]]; then
 fi
 if [[ "$DO_GEMINI" -eq 1 ]]; then
   echo "  gemini:  use /team or /debate in a Gemini CLI / Orca IDE session (restart session to reload)"
-  echo "  ponytail (required by /team): ensure ponytail and ponytail-review are in ~/.gemini/skills/"
   echo "  policy:  node ~/.gemini/team-reviewer-probe.mjs"
 fi
