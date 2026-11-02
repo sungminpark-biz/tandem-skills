@@ -71,6 +71,12 @@ replies into English.
     user to run `/mcp auth <server>`, end your turn, and continue when they say it's done. Never work
     around a disconnected project DB MCP with guesses; if not installed or unreachable, state so once
     and write `not verified: <reason>` where it would have been used.
+  - `git fetch` (failed → say so; no remote → the local default branch), then compare HEAD with the
+    branch this work will merge into (`<base>`, usually `origin/<default branch>`). Behind it with
+    nothing of its own (no commits `<base>` lacks, no uncommitted changes to tracked files) →
+    `git switch -c <branch> --no-track <base>`; anything else stays, such as a milestone branch with
+    unmerged slices. Say in one line which branch the survey reads and how far behind `<base>` it is
+    (a squash-merged branch looks like its own commits: the user may say to switch).
 - **ponytail is mandatory.** The design reviewer applies its ladder to every component;
   `ponytail-review` runs on every diff (activate via `activate_skill(name="ponytail-review")` and
   apply its rules to the diff). Where ponytail and these rules clash, these rules win: documents are
