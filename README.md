@@ -217,6 +217,9 @@ Other details that came out of real runs:
   a condition, an untouched function a slice changed the meaning of, a finding deferred by slice
   boundary, missing production steps) in about 12 minutes; the full suites take 23–35, so it runs
   alongside them.
+- A worktree that is only behind the branch the work will merge into (nothing of its own) moves onto
+  it before the survey. In a real run it sat 93 commits behind main until after approval: a reviewer
+  found main-only facts only in round 2, and the production steps rewritten for them went unreviewed.
 - The reviewer is a custom subagent, not the built-in `Plan` agent: `Plan` is one-shot (no agent ID),
   so a second review round can't reach it, and it skips `CLAUDE.md`.
 - Orca types its `You have N orchestration message…` notices into the driver's terminal as user turns;
