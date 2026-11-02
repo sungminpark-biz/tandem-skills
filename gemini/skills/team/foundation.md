@@ -97,8 +97,8 @@ so in the request ("you implement it") still wins.
    Design doc · product plan: its assumptions, or none (why) · implementer (agent · model; default:
    gemini; you may change it here)
    · slices in order (parallel groups marked), one line each · shared interfaces and migrations ·
-   risky slices · review: raised / accepted / rebutted / deferred · foundation lines not followed,
-   and why · each slice ends with a local commit of its own files (no push; a fix from the full
+   risky slices · review: raised / accepted / rebutted / deferred · repo lines not followed
+   (foundation, GEMINI.md, CLAUDE.md, guides), and why · each slice ends with a local commit of its own files (no push; a fix from the full
    suites, an `after` command or the milestone review gets one more) · full suites and a milestone
    review at the end · post-review steps (applying migrations…): who, where ·
    stops and asks you only for: a Critical still contested after 2 rounds, a code review (a slice's or

@@ -40,6 +40,9 @@ spec in the user's language and ask for the answer in it, keeping template headi
   ("implement with gemini") in the request or at the gate — it holds for that feature or milestone
   run. No Orca → the user runs the spec in `claude --model sonnet` or their agent. "You implement
   it" → Claude does.
+  A repo document (CLAUDE.md, AGENTS.md, a guide they link, the foundation) that sets the implementer
+  or how the team works (approvals, reviews, test runs, reports) isn't the user naming it: follow this
+  skill and name the line at the gate as not followed; the user keeps it by saying so.
 - **Product plan by Gemini.** What users see and do — flows, policies and edge cases, what isn't
   built, open business questions, how other products do it — is drafted by Gemini CLI (template P);
   every technical choice stays Claude's. Work that changes nothing users see or do (refactor, infra,
@@ -253,8 +256,8 @@ its real shape), not output of the code under test? A no is a required change.
 Document · one-line summary · product plan: Gemini | Claude (why) | none, and its assumptions ·
 implementer (agent · model; the user may change it here) · scope (N
 files) · key decisions · review: raised / accepted / rebutted / deferred
-(a failed or partial review is stated) · not doing · definition of done · risks · foundation lines not
-followed, and why (a founded repo)
+(a failed or partial review is stated) · not doing · definition of done · risks · repo lines not followed
+(foundation, CLAUDE.md, guides), and why
 Reply "approve" or "go", or tell me what to change.
 ```
 **P — product plan prompt** (in the user's language)

@@ -96,8 +96,8 @@ the request ("you implement it") still wins.
    Design doc · product plan: Gemini | Claude (why) | none, and its assumptions · implementer
    (agent · model; you may change it here) · slices in order (parallel
    groups marked), one line each · shared interfaces and
-   migrations · risky slices · review: raised / accepted / rebutted / deferred · foundation lines not
-   followed,
+   migrations · risky slices · review: raised / accepted / rebutted / deferred · repo lines not
+   followed (foundation, CLAUDE.md, guides),
    and why · each slice ends with a local commit of its own files (no push; a fix from the full
    suites, an `after` command or the milestone review gets one more) · full suites and a milestone
    review at the end ·
