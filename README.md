@@ -177,8 +177,9 @@ Before launch the data is test data, so these rules stay cheap: each states what
 and one that guards only test data is named at the gate and not followed. How the team works — who
 implements, approvals, reviews, how often tests run, reports — always follows the skill, so an update
 to the skill reaches every service; a foundation line that tries to set it is named at the gate and
-not followed. If a slice proves a decision wrong, the slice stops, a superseding decision record is
-written, reviewed and approved, and then the slice resumes.
+not followed, and so is one in CLAUDE.md or a guide it links. If a slice proves a decision wrong,
+the slice stops, a superseding decision record is written, reviewed and approved, and then the slice
+resumes.
 
 ### Just a debate
 

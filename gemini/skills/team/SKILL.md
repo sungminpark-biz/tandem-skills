@@ -39,6 +39,9 @@ replies into English.
   (e.g. `"claude로 구현해"`, `"implement with sonnet"` → `--agent claude --model sonnet`) in the
   request or at the gate — it holds for that feature or milestone run. No Orca → the user runs the
   spec in their agent. "You implement it" / "직접 구현해" → the coordinator implements directly.
+  A repo document (GEMINI.md, CLAUDE.md, AGENTS.md, a guide they link, the foundation) that sets the
+  implementer or how the team works (approvals, reviews, test runs, reports) isn't the user naming
+  it: follow this skill and name the line at the gate as not followed; the user keeps it by saying so.
 - **Product plan.** A change to what users see or do is planned before it is designed (template P),
   once the survey is in: flows, policies and edge cases, what isn't built, open business questions,
   how other products do it — no files, APIs or schemas yet (the design does those). Work that
@@ -247,8 +250,8 @@ change.
 ## Design ready — approval requested
 Document · one-line summary · product plan: its assumptions, or none (why) · implementer (agent ·
 model; default: gemini; the user may change it here) · scope (N files) · key decisions · review: raised / accepted / rebutted / deferred
-(a failed or partial review is stated) · not doing · definition of done · risks · foundation lines not
-followed, and why (a founded repo)
+(a failed or partial review is stated) · not doing · definition of done · risks · repo lines not followed
+(foundation, GEMINI.md, CLAUDE.md, guides), and why
 Reply "approve" or "go", or tell me what to change.
 ```
 **P — product plan** (in the user's language; what users see and do, no files, APIs or schemas)
