@@ -281,6 +281,11 @@ fix, which ones re-ran) · production steps left to do (the design doc's: who, w
 and deferred findings with why.
 
 ## Gotchas
+- Gemini CLI cancels a shell command after 5 minutes without output on stdout or stderr
+  (`tools.shell.inactivityTimeout`). Let tests and builds print as they run (no `| tail`, `| grep` or
+  `> file` in the foreground); full suites run with `is_background: true`, output to
+  `/tmp/team/<slug>/`. `orca orchestration check --wait` stays alive through its 15-second keepalive
+  lines on stderr: don't silence them.
 - The reviewer is the `team-reviewer` subagent (`invoke_agent(agent_name="team-reviewer", ...)`),
   read-only through `~/.gemini/policies/team-reviewer.toml`. Unavailable in this session → the review
   failed: say so and ask the user to restart Gemini. Never review through `generalist` or another
