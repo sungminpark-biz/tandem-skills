@@ -94,7 +94,7 @@ the request ("you implement it") still wins.
    ```
    ## Milestone M<n> — approval requested
    Design doc · product plan: Gemini | Claude (why) | none, and its assumptions · implementer
-   (agent · model; you may change it here) · slices in order (parallel
+   (one agent · model, never "A or B"; you may change it here) · slices in order (parallel
    groups marked), one line each · shared interfaces and
    migrations · risky slices · review: raised / accepted / rebutted / deferred · repo lines not
    followed (foundation, CLAUDE.md, guides),

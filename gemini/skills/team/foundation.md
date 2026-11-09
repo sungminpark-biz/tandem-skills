@@ -94,7 +94,7 @@ so in the request ("you implement it") still wins.
 4. **Milestone gate**, then end your turn:
    ```
    ## Milestone M<n> — approval requested
-   Design doc · product plan: its assumptions, or none (why) · implementer (agent · model; default:
+   Design doc · product plan: its assumptions, or none (why) · implementer (one agent · model, never "A or B"; default:
    gemini; you may change it here)
    · slices in order (parallel groups marked), one line each · shared interfaces and migrations ·
    risky slices · review: raised / accepted / rebutted / deferred · repo lines not followed

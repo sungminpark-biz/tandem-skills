@@ -67,7 +67,7 @@ from the one that wrote it.
   authenticate one that isn't
 
 Tested with Claude Code 2.1.273–2.1.286 (Claude Opus 5 / 5.5 driver, Sonnet 5.5 workers), Orca
-1.4.204–1.4.220 and Gemini CLI 0.65.0 (the planner call alone, not yet a full run) on macOS.
+1.4.204–1.4.220 and Gemini CLI 0.65.0–0.66.0 on macOS.
 
 ## Install
 
@@ -228,11 +228,16 @@ Other details that came out of real runs:
 
 ## Limitations
 
-- The product planner is Gemini CLI and has not been through a full `/team` run yet; its plan is a
-  draft that Claude checks against the code, and every technical choice stays Claude's.
+- The product planner is Gemini CLI; its plan is a draft that Claude checks against the code, and
+  every technical choice stays Claude's.
 - Reviewer and critic are Claude models; the worker is Claude Sonnet unless you name another agent. The
   code review always crosses models (Opus reviews Sonnet's or another agent's code, Sonnet reviews
-  Claude's own).
+  Claude's own). The Gemini CLI copy runs coordinator, worker and reviewer on one Gemini model: its
+  reviews are independent only through a fresh reviewer context and the worker writing the code.
+- Long runs get compacted. Claude Code re-attaches only about the first 5,000 tokens of a skill, and
+  Gemini CLI's summary keeps none of it; the skill tells the driver to re-read it after a compaction
+  (on Gemini through its description, the one part sent every turn). Like the gates, that is model
+  compliance.
 - A non-Claude implementer has not been through a full milestone run yet. It must run unattended: an
   agent that stops for confirmation prompts or whose login expires mid-run needs a human.
 - The reviewer's Bash isn't sandboxed; "review only, no writes to databases or external services" is a
@@ -268,6 +273,7 @@ gemini/
   policies/              team-reviewer.toml read-only PolicyEngine rules for team-reviewer
   team-reviewer-probe.mjs PolicyEngine verification script for ~/.gemini/policies
 install.sh
+CLAUDE.md                rules for editing this repo: ports, what survives a compaction
 ```
 
 ## License

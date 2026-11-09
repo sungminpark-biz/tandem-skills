@@ -62,7 +62,7 @@ MCP도, 데몬도, 스크립트도 없습니다. `SKILL.md` 2개, 리뷰어 서�
   context7과 프로젝트의 DB MCP가 연결돼 있는지 확인하고, 인증이 풀려 있으면 인증을 요청함
 
 Claude Code 2.1.273–2.1.286 (Claude Opus 5 / 5.5 드라이버, Sonnet 5.5 워커), Orca 1.4.204–1.4.220,
-Gemini CLI 0.65.0 (기획 호출만, 전체 실행은 아직), macOS에서 테스트.
+Gemini CLI 0.65.0–0.66.0, macOS에서 테스트.
 
 ## 설치
 
@@ -213,10 +213,15 @@ Claude가:
 
 ## 한계
 
-- 제품 기획은 Gemini CLI가 맡고, 아직 `/team` 전체를 돌려 보지 않았습니다. 기획은 Claude가 코드와 대조하는
-  초안이고, 기술 선택은 모두 Claude가 합니다.
+- 제품 기획은 Gemini CLI가 맡습니다. 기획은 Claude가 코드와 대조하는 초안이고, 기술 선택은 모두 Claude가
+  합니다.
 - 리뷰어와 반론자는 Claude 모델이고, 워커는 다른 에이전트를 지정하지 않으면 Claude Sonnet입니다. 코드 리뷰는
   항상 모델을 건너갑니다(Opus가 Sonnet이나 다른 에이전트의 코드를, Sonnet이 Claude가 직접 짠 코드를 검토).
+  Gemini CLI 판은 지휘자·워커·리뷰어가 Gemini 모델 하나라서, 리뷰의 독립성은 새 문맥의 리뷰어와 코드를 워커가
+  쓴다는 점에서만 나옵니다.
+- 긴 실행은 컨텍스트가 압축됩니다. Claude Code는 스킬의 앞 약 5,000토큰만 다시 붙이고, Gemini CLI의 요약에는
+  스킬이 남지 않습니다. 스킬이 압축 뒤에 자신을 다시 읽으라고 지시하지만(Gemini는 매 턴 실리는 description으로),
+  게이트처럼 모델이 지켜야 하는 규칙입니다.
 - Claude가 아닌 구현 에이전트는 아직 마일스톤 전체를 돌려 보지 않았습니다. 사람 없이 돌아가야 하므로, 확인
   창에서 멈추거나 실행 중에 로그인이 만료되는 에이전트는 사람이 처리해야 합니다.
 - 리뷰어의 Bash는 sandbox가 아닙니다. "리뷰만, DB·외부 서비스에 쓰지 말 것"은 프롬프트 규칙입니다. 운영
@@ -252,6 +257,7 @@ gemini/
   policies/              team-reviewer 읽기 전용 PolicyEngine 규칙 (team-reviewer.toml)
   team-reviewer-probe.mjs ~/.gemini/policies 검증 스크립트
 install.sh
+CLAUDE.md                이 저장소 편집 규칙: 이식, 압축 뒤 남는 부분
 ```
 
 ## 라이선스
