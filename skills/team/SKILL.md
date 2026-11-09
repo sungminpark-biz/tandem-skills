@@ -54,7 +54,11 @@ section you are in, before your next step.
   Orca worker writes the code (below): Claude Sonnet, unless the user names another Orca agent
   ("implement with gemini") in the request or at the gate — it holds for that feature or milestone
   run. No Orca → the user runs the spec in `claude --model sonnet` or their agent. "You implement
-  it" → Claude does; only the user's words start that (or a re-check's fixes: Route), and the gate never offers it.
+  it" → Claude does; only the user's words start that (or a re-check's fixes: Route), and the gate
+  never offers it. Every other source change in a run — the build, a review's fixes, a failing test,
+  the next slice, work continued from another tab or session — goes to a worker; a released worker
+  means a new one in that worktree, never Claude's own edit, even a small one: carrying the run's
+  whole history, Claude is the slow one.
   A repo document (CLAUDE.md, AGENTS.md, a guide they link, the foundation) that sets the implementer
   or how the team works (approvals, reviews, test runs, reports) isn't the user naming it: follow this
   skill and name the line at the gate as not followed; the user keeps it by saying so.
@@ -100,21 +104,6 @@ section you are in, before your next step.
   with evidence, or defer (Deferring a finding).
 - **Code is reviewed by a different model than its author**: written by Sonnet or a non-Claude agent
   → `model: "opus"`, otherwise `model: "sonnet"` (always pass it).
-- **Preflight**, once before the survey:
-  - `ponytail:ponytail-review` is in the skill list; missing → give `/plugin marketplace add
-    DietrichGebert/ponytail` + `/plugin install ponytail@ponytail` and stop.
-  - `claude mcp list` in the worktree: context7 and the project's database MCP (if it has one) must
-    show Connected. **"Needs authentication" is a stop, before any survey or design work**: ask the
-    user to run `/mcp` and log in to that server (or start the login with its `…__authenticate` tool,
-    found with ToolSearch, and give them the URL), end your turn, and continue when they say it's done.
-    Never work around it with web search. Failed or not installed → say so once, go on, and write
-    `not verified: <reason>` where it would have been used.
-  - `git fetch` (failed → say so; no remote → the local default branch), then compare HEAD with the
-    branch this work will merge into (`<base>`, usually `origin/<default branch>`). Behind it with
-    nothing of its own (no commits `<base>` lacks, no uncommitted changes to tracked files) →
-    `git switch -c <branch> --no-track <base>`; anything else stays, such as a milestone branch with
-    unmerged slices. Say in one line which branch the survey reads and how far behind `<base>` it is
-    (a squash-merged branch looks like its own commits: the user may say to switch).
 - **ponytail is mandatory.** The design reviewer applies its ladder to every component;
   `ponytail-review` runs on every diff. Where ponytail and these rules clash, these rules win:
   documents are written in full, gates are never skipped, the worker asks before cutting anything the
@@ -156,6 +145,21 @@ section you are in, before your next step.
     that worktree), code review on the fix, then re-run what failed (after any post-review step the fix
     needs); a milestone commits the fix, a feature leaves it uncommitted with the rest. Still failing →
     stop and report.
+- **Preflight**, once before the survey:
+  - `ponytail:ponytail-review` is in the skill list; missing → give `/plugin marketplace add
+    DietrichGebert/ponytail` + `/plugin install ponytail@ponytail` and stop.
+  - `claude mcp list` in the worktree: context7 and the project's database MCP (if it has one) must
+    show Connected. **"Needs authentication" is a stop, before any survey or design work**: ask the
+    user to run `/mcp` and log in to that server (or start the login with its `…__authenticate` tool,
+    found with ToolSearch, and give them the URL), end your turn, and continue when they say it's done.
+    Never work around it with web search. Failed or not installed → say so once, go on, and write
+    `not verified: <reason>` where it would have been used.
+  - `git fetch` (failed → say so; no remote → the local default branch), then compare HEAD with the
+    branch this work will merge into (`<base>`, usually `origin/<default branch>`). Behind it with
+    nothing of its own (no commits `<base>` lacks, no uncommitted changes to tracked files) →
+    `git switch -c <branch> --no-track <base>`; anything else stays, such as a milestone branch with
+    unmerged slices. Say in one line which branch the survey reads and how far behind `<base>` it is
+    (a squash-merged branch looks like its own commits: the user may say to switch).
 
 ## Feature
 1. **Survey** (≤10 minutes), with the product plan (Rules) running alongside when users see the
