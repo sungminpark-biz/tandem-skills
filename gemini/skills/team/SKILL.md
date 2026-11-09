@@ -15,7 +15,8 @@ description: >-
   "design the whole service from scratch", "re-check what /team built". Trivial edits (1-2 files) don't need a team - just do
   them. If you were running a /team run and a state_snapshot replaced your earlier turns, call
   activate_skill(name="team") once before the next step (not again until the next state_snapshot),
-  and in a milestone run re-read its foundation.md.
+  and in a milestone run re-read its foundation.md. In a /team run Orca workers write the code (a
+  released worker means a new one), not you, unless the user says to.
 ---
 
 # /team — Coordinator plans, designs and reviews, an Orca worker builds
@@ -49,6 +50,10 @@ replies into English.
   request or at the gate — it holds for that feature or milestone run. No Orca → the user runs the
   spec in their agent. "You implement it" / "직접 구현해" → the coordinator implements directly;
   only the user's words start that (or a re-check's fixes: Route), and the gate never offers it.
+  Every other source change in a run — the build, a review's fixes, a failing test, the next slice,
+  work continued from another tab or session ("이어서 진행해줘") — goes to a worker; a released worker
+  means a new one in that worktree, never the coordinator's own edit, even a small one: carrying the
+  run's whole history, the coordinator is the slow one.
   A repo document (GEMINI.md, CLAUDE.md, AGENTS.md, a guide they link, the foundation) that sets the
   implementer or how the team works (approvals, reviews, test runs, reports) isn't the user naming
   it: follow this skill and name the line at the gate as not followed; the user keeps it by saying so.
@@ -84,20 +89,6 @@ replies into English.
   when running Round 2 for a reviewer, pass a self-contained prompt that includes the design doc/diff
   path, the Round 1 findings, and:
   `Accepted: … → changed: … / Rebutted: … — evidence: … / Deferred: … — why: … / Re-check only what changed and answer in the same format.`
-- **Preflight**, once before the survey:
-  - Ensure `ponytail-review` is available in `<available_skills>` (activate with
-    `activate_skill(name="ponytail-review")` when needed).
-  - Check if the project uses an MCP server (e.g. Supabase/Postgres in `.gemini/settings.json` or
-    `.mcp.json`). If a required project database MCP is disconnected or needs authentication, ask the
-    user to run `/mcp auth <server>`, end your turn, and continue when they say it's done. Never work
-    around a disconnected project DB MCP with guesses; if not installed or unreachable, state so once
-    and write `not verified: <reason>` where it would have been used.
-  - `git fetch` (failed → say so; no remote → the local default branch), then compare HEAD with the
-    branch this work will merge into (`<base>`, usually `origin/<default branch>`). Behind it with
-    nothing of its own (no commits `<base>` lacks, no uncommitted changes to tracked files) →
-    `git switch -c <branch> --no-track <base>`; anything else stays, such as a milestone branch with
-    unmerged slices. Say in one line which branch the survey reads and how far behind `<base>` it is
-    (a squash-merged branch looks like its own commits: the user may say to switch).
 - **ponytail is mandatory.** The design reviewer applies its ladder to every component;
   `ponytail-review` runs on every diff (activate via `activate_skill(name="ponytail-review")` and
   apply its rules to the diff). Where ponytail and these rules clash, these rules win: documents are
@@ -140,6 +131,20 @@ replies into English.
     in that worktree), code review on the fix, then re-run what failed (after any post-review step
     the fix needs); a milestone commits the fix, a feature leaves it uncommitted with the rest. Still
     failing → stop and report.
+- **Preflight**, once before the survey:
+  - Ensure `ponytail-review` is available in `<available_skills>` (activate with
+    `activate_skill(name="ponytail-review")` when needed).
+  - Check if the project uses an MCP server (e.g. Supabase/Postgres in `.gemini/settings.json` or
+    `.mcp.json`). If a required project database MCP is disconnected or needs authentication, ask the
+    user to run `/mcp auth <server>`, end your turn, and continue when they say it's done. Never work
+    around a disconnected project DB MCP with guesses; if not installed or unreachable, state so once
+    and write `not verified: <reason>` where it would have been used.
+  - `git fetch` (failed → say so; no remote → the local default branch), then compare HEAD with the
+    branch this work will merge into (`<base>`, usually `origin/<default branch>`). Behind it with
+    nothing of its own (no commits `<base>` lacks, no uncommitted changes to tracked files) →
+    `git switch -c <branch> --no-track <base>`; anything else stays, such as a milestone branch with
+    unmerged slices. Say in one line which branch the survey reads and how far behind `<base>` it is
+    (a squash-merged branch looks like its own commits: the user may say to switch).
 
 ## Feature
 1. **Survey** (≤10 minutes): existing assets, call sites, measured scale from read-only sources.
