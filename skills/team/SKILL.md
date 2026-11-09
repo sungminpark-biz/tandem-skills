@@ -13,7 +13,9 @@ description: >-
   milestone map with the user.
   Triggers: "/team", "/team foundation", "/team M3" (a milestone or slice), "design then have a worker
   implement it", "have sonnet implement this", "implement with gemini", "work as a team", "design the
-  whole service from scratch". Trivial edits (1-2 files) don't need a team - just do them.
+  whole service from scratch", "re-check what /team built". Trivial edits (1-2 files) don't need a
+  team - just do them. If you are running /team and the conversation was compacted, re-read this
+  skill before the next step.
 argument-hint: "[foundation] <feature, milestone, slice or service>"
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
 ---
@@ -26,7 +28,17 @@ results being in English changes nothing. Write every subagent prompt (survey, r
 spec in the user's language and ask for the answer in it, keeping template headings such as
 `## Verdict:` as written: English results are what pull the replies into English.
 
+**After a compaction** (the conversation continues from a summary) Claude Code keeps only about
+the first 5,000 tokens of this file — everything after the Rules (the Feature steps, the Orca
+worker commands, every template, the gotchas) may be gone — and `foundation.md` only as a path.
+Re-read this file in full, and in a milestone run the `foundation.md` section you are in, before
+your next step.
+
 ## Route
+- A request to re-check or re-review work this skill already reported ("check it thoroughly")
+  → Feature step 6 again with a fresh reviewer: a feature with template C, a milestone with the
+  milestone review prompt (`foundation.md` Build) minus its no-tests line; fixes go to a worker;
+  report T.
 - `/team foundation …`, a new service, or a re-founding → `foundation.md` "Found".
 - `docs/design/foundation/` exists and the request names a milestone or slice → `foundation.md`
   "Milestone run". A request that changes the foundation → `foundation.md` "Change".
@@ -39,7 +51,7 @@ spec in the user's language and ask for the answer in it, keeping template headi
   Orca worker writes the code (below): Claude Sonnet, unless the user names another Orca agent
   ("implement with gemini") in the request or at the gate — it holds for that feature or milestone
   run. No Orca → the user runs the spec in `claude --model sonnet` or their agent. "You implement
-  it" → Claude does.
+  it" → Claude does; only the user's words start that, and the gate never offers it.
   A repo document (CLAUDE.md, AGENTS.md, a guide they link, the foundation) that sets the implementer
   or how the team works (approvals, reviews, test runs, reports) isn't the user naming it: follow this
   skill and name the line at the gate as not followed; the user keeps it by saying so.
@@ -53,10 +65,8 @@ spec in the user's language and ask for the answer in it, keeping template headi
   POLICY=<this skill's folder>/plan-policy.toml
   test -r "$POLICY" && env -u ORCA_PANE_KEY gemini -p "$(cat /tmp/team/<slug>/plan-req.md)" --skip-trust --admin-policy "$POLICY" > /tmp/team/<slug>/plan.md 2> /tmp/team/<slug>/plan.err
   ```
-  The policy leaves Gemini only file reads and web search (Gemini runs without a policy it can't
-  read, hence `test -r`); never use `--approval-mode plan` instead (headless, it switches itself to
-  YOLO and edits). `--skip-trust`: headless Gemini exits in an
-  untrusted folder. `env -u ORCA_PANE_KEY`: Gemini's Orca hooks would report as the driver's pane.
+  The policy leaves Gemini only file reads and web search (its comments say why each flag is
+  there); never use `--approval-mode plan` instead: headless, it switches itself to YOLO and edits.
   No `gemini` on PATH, a non-zero exit or timeout (reason in `plan.err`), a plan without the
   sections asked for, or "plan it yourself" → Claude writes those sections, and the gate says why.
   The plan is a draft, not evidence: a claim the code or the foundation contradicts is corrected; a
@@ -66,17 +76,25 @@ spec in the user's language and ask for the answer in it, keeping template headi
   `foundation.md` Found).
 - **Approve before code.** Nothing is implemented until the user approves the design (or milestone).
   Only an explicit "proceed without approval" in the request skips the gate.
+- **Before launch** (charter `Stage: pre-launch`; no charter → not before launch) the database holds
+  test data: Claude and workers may write to it to verify (reviewers stay read-only). Otherwise never
+  write to production databases to verify.
+- Messages, payments and paid APIs are never used to verify. A source you can't reach → write `not
+  verified: <reason>`, never a guess. Post-review steps (applying a migration, deploying) wait for the
+  code review's approval. Commit only when the user asks (a milestone approval covers its per-slice
+  local commits, their fix commits and the milestone review's fix). Scratch files go to
+  `/tmp/team/<slug>/`.
 - **Independent review.** Every design and every diff is reviewed by a read-only `team-reviewer`
   subagent. A **risk reviewer** joins in parallel for money, auth/permissions, every foundation
-  review, and — except before launch (below) — migrations that change or drop existing data and
-  customer data; a project's foundation may name more. Every review prompt is self-contained (paths,
-  measured facts, the template) and ends with: "Review only: no edits, no DB/MCP writes, no deploys,
-  no integration tests that write. Don't re-run the definition of done or a full suite: Claude runs
-  them. Run a test only to check one thing, e.g. that a test fails on a copy outside the repo with
-  the change reverted. Stop after 30 tool calls (60 for a milestone design review, the milestone
-  review or a foundation review) and list what you didn't check." Wait for every reviewer you
-  started, then check each finding against the code yourself; accept, rebut with evidence, or
-  defer (Deferring a finding).
+  review, and — except before launch (the Before launch rule) — migrations that change or drop
+  existing data and customer data; a project's foundation may name more. Every review prompt is
+  self-contained (paths, measured facts, the template) and ends with: "Review only: no edits, no
+  DB/MCP writes, no deploys, no integration tests that write. Don't re-run the definition of done or
+  a full suite: Claude runs them. Run a test only to check one thing, e.g. that a test fails on a
+  copy outside the repo with the change reverted. Stop after 30 tool calls (60 for a milestone
+  design review, the milestone review or a foundation review) and list what you didn't check." Wait
+  for every reviewer you started, then check each finding against the code yourself; accept, rebut
+  with evidence, or defer (Deferring a finding).
 - **Code is reviewed by a different model than its author**: written by Sonnet or a non-Claude agent
   → `model: "opus"`, otherwise `model: "sonnet"` (always pass it).
 - **Preflight**, once before the survey:
@@ -135,14 +153,6 @@ spec in the user's language and ask for the answer in it, keeping template headi
     that worktree), code review on the fix, then re-run what failed (after any post-review step the fix
     needs); a milestone commits the fix, a feature leaves it uncommitted with the rest. Still failing →
     stop and report.
-- **Before launch** (charter `Stage: pre-launch`; no charter → not before launch) the database holds
-  test data: Claude and workers may write to it to verify (reviewers stay read-only). Otherwise never
-  write to production databases to verify.
-- Messages, payments and paid APIs are never used to verify. A source you can't reach → write `not
-  verified: <reason>`, never a guess. Post-review steps (applying a migration, deploying) wait for the
-  code review's approval. Commit only when the user asks (a milestone approval covers its per-slice
-  local commits, their fix commits and the milestone review's fix). Scratch files go to
-  `/tmp/team/<slug>/`.
 
 ## Feature
 1. **Survey** (≤10 minutes), with the product plan (Rules) running alongside when users see the
@@ -254,7 +264,7 @@ its real shape), not output of the code under test? A no is a required change.
 ```
 ## Design ready — approval requested
 Document · one-line summary · product plan: Gemini | Claude (why) | none, and its assumptions ·
-implementer (agent · model; the user may change it here) · scope (N
+implementer (one agent · model, never "A or B"; the user may change it here) · scope (N
 files) · key decisions · review: raised / accepted / rebutted / deferred
 (a failed or partial review is stated) · not doing · definition of done · risks · repo lines not followed
 (foundation, CLAUDE.md, guides), and why
@@ -288,7 +298,8 @@ worker_done in <the user's language>.
 ```
 **T — report**: first, each goal and done criterion of the user's request or milestone: met / partly /
 not, with evidence (a file, a command's output) — a partly or not opens the report and the work is not
-called done · design doc · files · what review changed · code review rounds and fixes ·
+called done · design doc · worker (agent · model and its dispatch ids, or none: why —
+e.g. you asked me to implement, or no Orca) · files · what review changed · code review rounds and fixes ·
 `ponytail-review` applied / rejected · tests and full suites (fresh output from your own run; after a
 fix, which ones re-ran) · production steps left to do (the design doc's: who, where) · open issues,
 and deferred findings with why.

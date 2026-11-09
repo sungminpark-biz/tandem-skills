@@ -12,8 +12,10 @@ description: >-
   foundation <service>") drafts the charter, the expensive-to-reverse decisions and the milestone
   map with the user. Triggers: "/team", "team", "/team foundation", "/team M3" (a milestone or
   slice), "design then have a worker implement it", "implement with gemini", "work as a team",
-  "design the whole service from scratch". Trivial edits (1-2 files) don't need a team - just do
-  them.
+  "design the whole service from scratch", "re-check what /team built". Trivial edits (1-2 files) don't need a team - just do
+  them. If you were running a /team run and a state_snapshot replaced your earlier turns, call
+  activate_skill(name="team") again before the next step, and in a milestone run re-read its
+  foundation.md.
 ---
 
 # /team — Coordinator plans, designs and reviews, an Orca worker builds
@@ -25,6 +27,10 @@ it, keeping template headings such as `## Verdict:` as written: English results 
 replies into English.
 
 ## Route
+- A request to re-check or re-review work this skill already reported ("check it thoroughly")
+  → Feature step 6 again with a fresh reviewer: a feature with template C, a milestone with the
+  milestone review prompt (`foundation.md` Build) minus its no-tests line; fixes go to a worker;
+  report T.
 - `/team foundation …`, a new service, or a re-founding → `foundation.md` "Found".
 - `docs/design/foundation/` exists and the request names a milestone or slice → `foundation.md`
   "Milestone run". A request that changes the foundation → `foundation.md` "Change".
@@ -38,7 +44,8 @@ replies into English.
   default so zero Claude tokens are consumed, unless the user explicitly names another Orca agent
   (e.g. `"claude로 구현해"`, `"implement with sonnet"` → `--agent claude --model sonnet`) in the
   request or at the gate — it holds for that feature or milestone run. No Orca → the user runs the
-  spec in their agent. "You implement it" / "직접 구현해" → the coordinator implements directly.
+  spec in their agent. "You implement it" / "직접 구현해" → the coordinator implements directly;
+  only the user's words start that, and the gate never offers it.
   A repo document (GEMINI.md, CLAUDE.md, AGENTS.md, a guide they link, the foundation) that sets the
   implementer or how the team works (approvals, reviews, test runs, reports) isn't the user naming
   it: follow this skill and name the line at the gate as not followed; the user keeps it by saying so.
@@ -52,16 +59,24 @@ replies into English.
   all: `foundation.md` Found).
 - **Approve before code.** Nothing is implemented until the user approves the design (or milestone).
   Only an explicit "proceed without approval" / "승인 없이 진행" in the request skips the gate.
+- **Before launch** (charter `Stage: pre-launch`; no charter → not before launch) the database holds
+  test data: the coordinator and workers may write to it to verify (reviewers stay read-only).
+  Otherwise never write to production databases to verify.
+- Messages, payments and paid APIs are never used to verify. A source you can't reach → write `not
+  verified: <reason>`, never a guess. Post-review steps (applying a migration, deploying) wait for the
+  code review's approval. Commit only when the user asks (a milestone approval covers its per-slice
+  local commits, their fix commits and the milestone review's fix). Scratch files go to
+  `/tmp/team/<slug>/`.
 - **Independent review.** Every design and every diff is reviewed by a read-only `team-reviewer`
-  subagent via `invoke_agent(agent_name="team-reviewer", prompt="...")`. A **risk reviewer** (a second
-  parallel `invoke_agent(agent_name="team-reviewer", ...)` call) joins in parallel for money,
-  auth/permissions, every foundation review, and — except before launch (below) — migrations that
-  change or drop existing data and customer data; a project's foundation may name more. Every review
-  prompt is self-contained (paths, measured facts, the template) and ends with: "Review only: no
-  edits, no DB/MCP writes, no deploys, no tests (the coordinator runs them). Stop after 30 tool calls (60
-  for a milestone design review, the milestone review or a foundation review) and list what you
-  didn't check." Wait for every reviewer you started, then check each finding against the code
-  yourself; accept, rebut with evidence, or defer (Deferring a finding).
+  subagent via `invoke_agent(agent_name="team-reviewer", prompt="...")`. A **risk reviewer** (a
+  second parallel `invoke_agent(agent_name="team-reviewer", ...)` call) joins in parallel for money,
+  auth/permissions, every foundation review, and — except before launch (the Before launch rule) —
+  migrations that change or drop existing data and customer data; a project's foundation may name
+  more. Every review prompt is self-contained (paths, measured facts, the template) and ends with:
+  "Review only: no edits, no DB/MCP writes, no deploys, no tests (the coordinator runs them). Stop
+  after 30 tool calls (60 for a milestone design review, the milestone review or a foundation
+  review) and list what you didn't check." Wait for every reviewer you started, then check each
+  finding against the code yourself; accept, rebut with evidence, or defer (Deferring a finding).
 - **Round 2 reviews in Gemini CLI:** Because `invoke_agent` starts a fresh subagent context each call,
   when running Round 2 for a reviewer, pass a self-contained prompt that includes the design doc/diff
   path, the Round 1 findings, and:
@@ -122,14 +137,6 @@ replies into English.
     in that worktree), code review on the fix, then re-run what failed (after any post-review step
     the fix needs); a milestone commits the fix, a feature leaves it uncommitted with the rest. Still
     failing → stop and report.
-- **Before launch** (charter `Stage: pre-launch`; no charter → not before launch) the database holds
-  test data: the coordinator and workers may write to it to verify (reviewers stay read-only).
-  Otherwise never write to production databases to verify.
-- Messages, payments and paid APIs are never used to verify. A source you can't reach → write `not
-  verified: <reason>`, never a guess. Post-review steps (applying a migration, deploying) wait for the
-  code review's approval. Commit only when the user asks (a milestone approval covers its per-slice
-  local commits, their fix commits and the milestone review's fix). Scratch files go to
-  `/tmp/team/<slug>/`.
 
 ## Feature
 1. **Survey** (≤10 minutes): existing assets, call sites, measured scale from read-only sources.
@@ -248,8 +255,8 @@ change.
 **G — approval gate**
 ```
 ## Design ready — approval requested
-Document · one-line summary · product plan: its assumptions, or none (why) · implementer (agent ·
-model; default: gemini; the user may change it here) · scope (N files) · key decisions · review: raised / accepted / rebutted / deferred
+Document · one-line summary · product plan: its assumptions, or none (why) · implementer (one agent ·
+model, never "A or B"; default: gemini; the user may change it here) · scope (N files) · key decisions · review: raised / accepted / rebutted / deferred
 (a failed or partial review is stated) · not doing · definition of done · risks · repo lines not followed
 (foundation, GEMINI.md, CLAUDE.md, guides), and why
 Reply "approve" or "go", or tell me what to change.
@@ -278,7 +285,8 @@ worker_done in <the user's language>.
 ```
 **T — report**: first, each goal and done criterion of the user's request or milestone: met / partly /
 not, with evidence (a file, a command's output) — a partly or not opens the report and the work is not
-called done · design doc · files · what review changed · code review rounds and fixes ·
+called done · design doc · worker (agent · model and its dispatch ids, or none: why —
+e.g. you asked me to implement, or no Orca) · files · what review changed · code review rounds and fixes ·
 `ponytail-review` applied / rejected · tests and full suites (fresh output from your own run; after a
 fix, which ones re-ran) · production steps left to do (the design doc's: who, where) · open issues,
 and deferred findings with why.

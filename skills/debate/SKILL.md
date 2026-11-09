@@ -7,7 +7,8 @@ description: >-
   consensus to the user. Use immediately when the user says "/debate", "have the AIs debate",
   "second opinion", "cross-review", "discuss and get a better result". Also use unprompted for:
   non-trivial design/architecture decisions, changes affecting payments/DB/customers, contested
-  trade-offs, and a final review after an implementation. Not for simple questions, typo fixes, or
+  trade-offs, and a final review after an implementation (not work a /team run built: /team
+  re-checks that, so its fixes go to a worker). Not for simple questions, typo fixes, or
   obvious one-line changes.
 argument-hint: "[topic — empty means the work currently in progress]"
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write

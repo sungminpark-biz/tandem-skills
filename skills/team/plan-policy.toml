@@ -3,6 +3,9 @@
 # (--approval-mode plan is not read-only headless: it exits plan mode into YOLO.)
 # Gemini skips a policy file it can't parse and runs without it: after editing, ask a headless run
 # to write a file and check that it can't. No web_fetch: with read_file it could send files anywhere.
+# The command in SKILL.md: `test -r` because Gemini runs without a policy it can't read;
+# --skip-trust because headless Gemini exits in an untrusted folder; env -u ORCA_PANE_KEY because
+# Gemini's Orca hooks would otherwise report as the driver's pane.
 [[rule]]
 toolName = "*"
 decision = "deny"
