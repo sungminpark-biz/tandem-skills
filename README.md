@@ -230,10 +230,11 @@ Other details that came out of real runs:
 
 - The product planner is Gemini CLI; its plan is a draft that Claude checks against the code, and
   every technical choice stays Claude's.
-- Reviewer and critic are Claude models; the worker is Claude Sonnet unless you name another agent. The
-  code review always crosses models (Opus reviews Sonnet's or another agent's code, Sonnet reviews
-  Claude's own). The Gemini CLI copy runs coordinator, worker and reviewer on one Gemini model: its
-  reviews are independent only through a fresh reviewer context and the worker writing the code.
+- Reviewer and critic are Claude models; the worker is Claude Sonnet unless you name another agent.
+  The code review always crosses models (Opus reviews Sonnet's or another agent's code, Sonnet reviews
+  Claude's own). The Gemini CLI copy runs coordinator, worker and reviewer on one Gemini model by
+  default: its reviews are independent only through a fresh reviewer context and the worker writing
+  the code.
 - Long runs get compacted. Claude Code re-attaches only about the first 5,000 tokens of a skill, and
   Gemini CLI's summary keeps none of it; the skill tells the driver to re-read it after a compaction
   (on Gemini through its description, the one part sent every turn). Like the gates, that is model

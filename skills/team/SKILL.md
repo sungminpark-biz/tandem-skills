@@ -15,7 +15,7 @@ description: >-
   implement it", "have sonnet implement this", "implement with gemini", "work as a team", "design the
   whole service from scratch", "re-check what /team built". Trivial edits (1-2 files) don't need a
   team - just do them. If you are running /team and the conversation was compacted, re-read this
-  skill before the next step.
+  skill once before the next step.
 argument-hint: "[foundation] <feature, milestone, slice or service>"
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
 ---
@@ -29,17 +29,18 @@ spec in the user's language and ask for the answer in it, keeping template headi
 `## Verdict:` as written: English results are what pull the replies into English.
 
 **After a compaction** (the conversation continues from a summary) Claude Code keeps only about
-the first 5,000 tokens of this file — everything after the Rules (the Feature steps, the Orca
-worker commands, every template, the gotchas) may be gone — and `foundation.md` only as a path.
-Re-read this file in full, and in a milestone run the `foundation.md` section you are in, before
-your next step.
+the first 5,000 tokens of this file — the later Rules (from about Tests on), the Feature steps, the
+Orca worker commands, every template and the gotchas may be gone — and `foundation.md` only as a
+path. Re-read this file in full once per compaction, and in a milestone run the `foundation.md`
+section you are in, before your next step.
 
 ## Route
 - A request to re-check or re-review work this skill already reported ("check it thoroughly")
-  → Feature step 6 again with a fresh reviewer: a feature with template C, a milestone with the
-  milestone review prompt (`foundation.md` Build) minus its no-tests line. The accepted fixes
-  Claude makes itself (no worker round); a reviewer on another model than Claude's re-checks them
-  against the findings, `ponytail-review` runs on their diff and the tests Rules: Tests names
+  → Feature step 6 again with fresh reviewers: a feature with template C, a milestone with the
+  milestone review's reviewers and prompt (`foundation.md` Build) minus its no-tests line. Claude
+  makes the accepted fixes itself (no worker round; left uncommitted), after `git add -A` (staging,
+  not a commit) so `git diff` shows only them; a reviewer on another model than Claude's re-checks
+  them against the findings, `ponytail-review` runs on that diff and the tests Rules: Tests names
   re-run; report T.
 - `/team foundation …`, a new service, or a re-founding → `foundation.md` "Found".
 - `docs/design/foundation/` exists and the request names a milestone or slice → `foundation.md`
@@ -53,7 +54,7 @@ your next step.
   Orca worker writes the code (below): Claude Sonnet, unless the user names another Orca agent
   ("implement with gemini") in the request or at the gate — it holds for that feature or milestone
   run. No Orca → the user runs the spec in `claude --model sonnet` or their agent. "You implement
-  it" → Claude does; only the user's words start that, and the gate never offers it.
+  it" → Claude does; only the user's words start that (or a re-check's fixes: Route), and the gate never offers it.
   A repo document (CLAUDE.md, AGENTS.md, a guide they link, the foundation) that sets the implementer
   or how the team works (approvals, reviews, test runs, reports) isn't the user naming it: follow this
   skill and name the line at the gate as not followed; the user keeps it by saying so.
@@ -67,8 +68,8 @@ your next step.
   POLICY=<this skill's folder>/plan-policy.toml
   test -r "$POLICY" && env -u ORCA_PANE_KEY gemini -p "$(cat /tmp/team/<slug>/plan-req.md)" --skip-trust --admin-policy "$POLICY" > /tmp/team/<slug>/plan.md 2> /tmp/team/<slug>/plan.err
   ```
-  The policy leaves Gemini only file reads and web search (its comments say why each flag is
-  there); never use `--approval-mode plan` instead: headless, it switches itself to YOLO and edits.
+  The policy leaves Gemini only file reads and web search (`plan-policy.toml`'s comments say why
+  each flag is there); never use `--approval-mode plan` instead: headless, it switches itself to YOLO and edits.
   No `gemini` on PATH, a non-zero exit or timeout (reason in `plan.err`), a plan without the
   sections asked for, or "plan it yourself" → Claude writes those sections, and the gate says why.
   The plan is a draft, not evidence: a claim the code or the foundation contradicts is corrected; a

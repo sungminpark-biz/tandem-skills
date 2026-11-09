@@ -14,8 +14,8 @@ description: >-
   slice), "design then have a worker implement it", "implement with gemini", "work as a team",
   "design the whole service from scratch", "re-check what /team built". Trivial edits (1-2 files) don't need a team - just do
   them. If you were running a /team run and a state_snapshot replaced your earlier turns, call
-  activate_skill(name="team") again before the next step, and in a milestone run re-read its
-  foundation.md.
+  activate_skill(name="team") once before the next step (not again until the next state_snapshot),
+  and in a milestone run re-read its foundation.md.
 ---
 
 # /team — Coordinator plans, designs and reviews, an Orca worker builds
@@ -28,10 +28,12 @@ replies into English.
 
 ## Route
 - A request to re-check or re-review work this skill already reported ("check it thoroughly")
-  → Feature step 6 again with a fresh reviewer: a feature with template C, a milestone with the
-  milestone review prompt (`foundation.md` Build) minus its no-tests line. The accepted fixes
-  the coordinator makes itself (no worker round), then the reviewer that raised them re-checks
-  them, `ponytail-review` runs on their diff and the tests Rules: Tests names re-run; report T.
+  → Feature step 6 again with fresh reviewers: a feature with template C, a milestone with the
+  milestone review's reviewers and prompt (`foundation.md` Build). The coordinator makes the
+  accepted fixes itself (no worker round; left uncommitted), after `git add -A` (staging, not a
+  commit) so `git diff` shows only them; the reviewer that raised them re-checks them (Round 2
+  reviews in Gemini CLI), `ponytail-review` runs on that diff and the tests Rules: Tests names
+  re-run; report T.
 - `/team foundation …`, a new service, or a re-founding → `foundation.md` "Found".
 - `docs/design/foundation/` exists and the request names a milestone or slice → `foundation.md`
   "Milestone run". A request that changes the foundation → `foundation.md` "Change".
@@ -46,7 +48,7 @@ replies into English.
   (e.g. `"claude로 구현해"`, `"implement with sonnet"` → `--agent claude --model sonnet`) in the
   request or at the gate — it holds for that feature or milestone run. No Orca → the user runs the
   spec in their agent. "You implement it" / "직접 구현해" → the coordinator implements directly;
-  only the user's words start that, and the gate never offers it.
+  only the user's words start that (or a re-check's fixes: Route), and the gate never offers it.
   A repo document (GEMINI.md, CLAUDE.md, AGENTS.md, a guide they link, the foundation) that sets the
   implementer or how the team works (approvals, reviews, test runs, reports) isn't the user naming
   it: follow this skill and name the line at the gate as not followed; the user keeps it by saying so.
