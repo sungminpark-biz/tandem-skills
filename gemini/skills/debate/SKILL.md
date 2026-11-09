@@ -8,7 +8,7 @@ description: >-
   "second opinion", "cross-review", "discuss and get a better result". Also use unprompted for:
   non-trivial design/architecture decisions, changes affecting payments/DB/customers, contested
   trade-offs, and a final review after an implementation (not work a /team run built: /team
-  re-checks that, so its fixes go to a worker). Not for simple questions, typo fixes, or
+  re-checks that). Not for simple questions, typo fixes, or
   obvious one-line changes.
 ---
 

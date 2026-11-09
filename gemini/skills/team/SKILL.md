@@ -29,8 +29,9 @@ replies into English.
 ## Route
 - A request to re-check or re-review work this skill already reported ("check it thoroughly")
   → Feature step 6 again with a fresh reviewer: a feature with template C, a milestone with the
-  milestone review prompt (`foundation.md` Build) minus its no-tests line; fixes go to a worker;
-  report T.
+  milestone review prompt (`foundation.md` Build) minus its no-tests line. The accepted fixes
+  the coordinator makes itself (no worker round), then the reviewer that raised them re-checks
+  them, `ponytail-review` runs on their diff and the tests Rules: Tests names re-run; report T.
 - `/team foundation …`, a new service, or a re-founding → `foundation.md` "Found".
 - `docs/design/foundation/` exists and the request names a milestone or slice → `foundation.md`
   "Milestone run". A request that changes the foundation → `foundation.md` "Change".
