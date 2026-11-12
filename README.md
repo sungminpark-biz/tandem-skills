@@ -109,8 +109,9 @@ Claude will:
    auth, and after launch for data-changing migrations and customer data — check each item against the
    code, and revise the doc, rebut, or defer, with its reason, what can't do real harm
 3. **stop and show you a summary — nothing is implemented until you say "approve"**
-4. spawn the worker in Orca (`worker-start --spec … --agent claude --model sonnet`, or `--agent gemini`
-   and the like when you named another agent — it runs its own configured model), which writes the
+4. spawn the worker in Orca (`worker-start --spec … --agent claude --model sonnet`, or
+   `--agent antigravity` (agy), `--agent gemini` and the like when you named another agent — it runs
+   its own configured model), which writes the
    code with ponytail inside the design's scope, and answer its questions
 5. review the diff (a spec check: missing, unrequested, implemented-but-wrong, each quoting the
    design, or a design line that itself fails in a real case; a test check: each new test fails with

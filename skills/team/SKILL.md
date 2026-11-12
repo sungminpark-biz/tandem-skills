@@ -2,7 +2,7 @@
 name: team
 description: >-
   Agent team for Claude Code: Gemini CLI drafts the product plan, Claude designs and reviews, an Orca
-  worker builds (Claude Sonnet, or another agent the user names, e.g. Gemini CLI). Feature: product
+  worker builds (Claude Sonnet, or another agent the user names, e.g. Antigravity CLI). Feature: product
   plan (when users see the change) -> design doc -> independent read-only review
   (+ a risk reviewer for money, auth and, except before launch, data-changing migrations) -> user
   approval -> the worker implements
@@ -12,7 +12,7 @@ description: >-
   ("/team foundation <service>") drafts the charter, the expensive-to-reverse decisions and the
   milestone map with the user.
   Triggers: "/team", "/team foundation", "/team M3" (a milestone or slice), "design then have a worker
-  implement it", "have sonnet implement this", "implement with gemini", "work as a team", "design the
+  implement it", "have sonnet implement this", "implement with agy", "work as a team", "design the
   whole service from scratch", "re-check what /team built". Trivial edits (1-2 files) don't need a
   team - just do them. If you are running /team and the conversation was compacted, re-read this
   skill once before the next step.
@@ -52,7 +52,7 @@ section you are in, before your next step.
 ## Rules
 - **Roles.** Gemini CLI drafts the product plan (next rule); Claude designs, reviews and decides; an
   Orca worker writes the code (below): Claude Sonnet, unless the user names another Orca agent
-  ("implement with gemini") in the request or at the gate — it holds for that feature or milestone
+  ("implement with agy") in the request or at the gate — it holds for that feature or milestone
   run. No Orca → the user runs the spec in `claude --model sonnet` or their agent. "You implement
   it" → Claude does; only the user's words start that (or a re-check's fixes: Route), and the gate
   never offers it. Every other source change in a run — the build, a review's fixes, a failing test,
@@ -200,7 +200,7 @@ section you are in, before your next step.
   ```bash
   orca orchestration run-create --objective "<feature>" --json
   orca orchestration worker-start --spec "<spec>" --worktree current --agent claude --model sonnet --timeout-ms 120000 --json   # Bash timeout ≥180000
-  # another implementer: --agent <its Orca id, e.g. gemini> and no --model (it runs its own configured model)
+  # another implementer: --agent <its Orca id: antigravity for agy, gemini, codex> and no --model (it runs its own configured model)
   orca orchestration worker-show --dispatch <ctx_id> --json     # → terminal handle
   orca terminal read --terminal <handle> --screen --json        # must show the chosen agent (Claude: a Sonnet model), or stop
   # no terminal → orca orchestration worker-read --dispatch <ctx_id> --source auto --json
