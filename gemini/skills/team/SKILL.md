@@ -191,7 +191,7 @@ replies into English.
   ```bash
   orca orchestration run-create --objective "<feature>" --json
   orca orchestration worker-start --spec "<spec>" --worktree current --agent gemini --timeout-ms 120000 --json
-  # another implementer if user requested Claude: --agent claude --model sonnet
+  # another implementer if the user named one: Claude --agent claude --model sonnet; agy --agent antigravity
   orca orchestration worker-show --dispatch <ctx_id> --json     # → terminal handle
   orca terminal read --terminal <handle> --screen --json        # must show the chosen agent (Gemini CLI by default), or stop
   # no terminal → orca orchestration worker-read --dispatch <ctx_id> --source auto --json
