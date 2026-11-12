@@ -86,6 +86,9 @@ ponytail (required; bundled automatically for Gemini CLI, install via plugin in 
 
 Check: open a new Claude Code or Gemini CLI / Orca IDE session and type `/team` or `/debate`.
 For Gemini CLI, verify the read-only reviewer policy with `node ~/.gemini/team-reviewer-probe.mjs`.
+`--gemini` also installs the Gemini copy for [Antigravity CLI](https://antigravity.google) (agy), which
+reads `~/.gemini/config/`: the same skills, and a reviewer with no shell (file reads and web search
+only) in place of the policy file. In agy the coordinator writes the diff and file list for it.
 
 ## Usage
 
@@ -267,11 +270,11 @@ skills/
 agents/
   team-reviewer.md       read-only, resumable reviewer / critic subagent for Claude Code
 gemini/
-  skills/team/           /team skill and foundation.md adapted for Gemini CLI (and Orca IDE)
+  skills/team/           /team skill and foundation.md adapted for Gemini CLI and agy (and Orca IDE)
   skills/debate/         /debate skill adapted for Gemini CLI
   skills/ponytail/       ponytail skill bundled for Gemini CLI
   skills/ponytail-review/ ponytail-review skill bundled for Gemini CLI
-  agents/                team-reviewer subagent for Gemini CLI
+  agents/                team-reviewer subagent for Gemini CLI, and team-reviewer.agy.md for agy (no shell)
   policies/              team-reviewer.toml read-only PolicyEngine rules for team-reviewer
   team-reviewer-probe.mjs PolicyEngine verification script for ~/.gemini/policies
 install.sh

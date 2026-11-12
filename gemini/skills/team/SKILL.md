@@ -1,9 +1,9 @@
 ---
 name: team
 description: >-
-  Agent team workflow for Gemini CLI (and Orca IDE): the coordinator plans the product, designs and
-  reviews, an Orca worker builds (defaults to Gemini CLI so zero Claude tokens are used, or another
-  agent the user names). Feature: product plan (when users see the change) -> design doc ->
+  Agent team workflow for Gemini CLI or Antigravity CLI (agy), in Orca IDE: the coordinator plans the
+  product, designs and reviews, an Orca worker builds (defaults to the coordinator's own CLI so zero
+  Claude tokens are used, or another agent the user names). Feature: product plan (when users see the change) -> design doc ->
   independent read-only review (+ a risk reviewer for money, auth and, except before launch,
   data-changing migrations) -> user approval -> the worker implements -> code review +
   ponytail-review -> report. Founded services build a milestone at a time: one
@@ -14,7 +14,7 @@ description: >-
   slice), "design then have a worker implement it", "implement with gemini", "work as a team",
   "design the whole service from scratch", "re-check what /team built". Trivial edits (1-2 files) don't need a team - just do
   them. If you were running a /team run and a state_snapshot replaced your earlier turns, call
-  activate_skill(name="team") once before the next step (not again until the next state_snapshot),
+  activate_skill(name="team") (agy: re-read this file) once before the next step (not again until the next state_snapshot),
   and in a milestone run re-read its foundation.md. In a /team run Orca workers write the code (a
   released worker means a new one), not you, unless the user says to.
 ---
@@ -26,6 +26,19 @@ file, its templates, Orca notices and subagent results being in English changes 
 subagent prompt (survey, reviewers) and worker spec in the user's language and ask for the answer in
 it, keeping template headings such as `## Verdict:` as written: English results are what pull the
 replies into English.
+
+## Gemini CLI or agy
+This copy runs in Gemini CLI and in Antigravity CLI (agy): same steps, only the coordinator's own tools
+differ. In agy read the Gemini CLI names here and in `foundation.md` as: `invoke_agent(agent_name=X,
+…)` → `invoke_subagent` with subagent X · `activate_skill(name=X)` → read X's `SKILL.md`
+(`orchestration`: `orca skills get orchestration`) · `ask_user` → `ask_question` ·
+`google_web_search` / `web_fetch` → `search_web` · `run_shell_command` with `is_background: true` →
+`run_command` in the background · a `state_snapshot` → agy's own context summary ·
+`codebase_investigator` / `generalist` → none: survey the code yourself. agy's `team-reviewer`
+(`~/.gemini/config/agents/team-reviewer.md`) has no shell, only file reads and web search, so it can't
+write and can't run git or grep: before every agy review, write `git ls-files` and, for a code review,
+the worktree's `git status --short` and its diff against the design's base into `/tmp/team/<slug>/`,
+and name those files in the prompt (it reads new files by path).
 
 ## Route
 - A request to re-check or re-review work this skill already reported ("check it thoroughly")
@@ -44,8 +57,8 @@ replies into English.
 
 ## Rules
 - **Roles.** The coordinator (Gemini) plans the product (next rule), designs, reviews and decides; an
-  Orca worker writes the code (below): **Gemini CLI (`--agent gemini`, no `--model` flag)** by
-  default so zero Claude tokens are consumed, unless the user explicitly names another Orca agent
+  Orca worker writes the code (below): **your own CLI (`--agent gemini` in Gemini CLI, `--agent
+  antigravity` in agy; no `--model` flag)** by default so zero Claude tokens are consumed, unless the user explicitly names another Orca agent
   (e.g. `"claude로 구현해"`, `"implement with sonnet"` → `--agent claude --model sonnet`) in the
   request or at the gate — it holds for that feature or milestone run. No Orca → the user runs the
   spec in their agent. "You implement it" / "직접 구현해" → the coordinator implements directly;
@@ -190,10 +203,10 @@ replies into English.
 - Start (one run per feature or milestone):
   ```bash
   orca orchestration run-create --objective "<feature>" --json
-  orca orchestration worker-start --spec "<spec>" --worktree current --agent gemini --timeout-ms 120000 --json
+  orca orchestration worker-start --spec "<spec>" --worktree current --agent <gemini | antigravity: your own CLI> --timeout-ms 120000 --json
   # another implementer if the user named one: Claude --agent claude --model sonnet; agy --agent antigravity
   orca orchestration worker-show --dispatch <ctx_id> --json     # → terminal handle
-  orca terminal read --terminal <handle> --screen --json        # must show the chosen agent (Gemini CLI by default), or stop
+  orca terminal read --terminal <handle> --screen --json        # must show the chosen agent (your own CLI by default), or stop
   # no terminal → orca orchestration worker-read --dispatch <ctx_id> --source auto --json
   ```
   `worker-start` exits non-zero → don't relaunch: read `failedStage` and `residualResources`.
@@ -264,7 +277,7 @@ change.
 ```
 ## Design ready — approval requested
 Document · one-line summary · product plan: its assumptions, or none (why) · implementer (one agent ·
-model, never "A or B"; default: gemini; the user may change it here) · scope (N files) · key decisions · review: raised / accepted / rebutted / deferred
+model, never "A or B"; default: your own CLI; the user may change it here) · scope (N files) · key decisions · review: raised / accepted / rebutted / deferred
 (a failed or partial review is stated) · not doing · definition of done · risks · repo lines not followed
 (foundation, GEMINI.md, CLAUDE.md, guides), and why
 Reply "approve" or "go", or tell me what to change.
@@ -306,8 +319,8 @@ and deferred findings with why.
   `/tmp/team/<slug>/`. `orca orchestration check --wait` stays alive through its 15-second keepalive
   lines on stderr: don't silence them.
 - The reviewer is the `team-reviewer` subagent (`invoke_agent(agent_name="team-reviewer", ...)`),
-  read-only through `~/.gemini/policies/team-reviewer.toml`. Unavailable in this session → the review
-  failed: say so and ask the user to restart Gemini. Never review through `generalist` or another
+  read-only through `~/.gemini/policies/team-reviewer.toml` (agy: through having no shell). Unavailable
+  in this session → the review failed: say so and ask the user to restart the CLI. Never review through `generalist` or another
   agent: no policy holds them, and they can write.
 - No `## Verdict:` → invoke `team-reviewer` once more requiring the verdict; still nothing → the
   review failed (say so). A review that lists unchecked areas is partial: check them yourself, never
