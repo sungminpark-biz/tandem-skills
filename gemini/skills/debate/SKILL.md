@@ -26,14 +26,17 @@ result.
 
 | | Coordinator (Gemini, the driver) | Critic (`team-reviewer` subagent) |
 |---|---|---|
-| Rights | edit, run, final synthesis | **no edit tools** (`team-reviewer` subagent: no `write_file`/`replace`; read-only shell, enforced by `~/.gemini/policies/team-reviewer.toml`; no tests) |
+| Rights | edit, run, final synthesis | **no edit tools** (`team-reviewer` subagent: no `write_file`/`replace`; read-only shell, enforced by `~/.gemini/policies/team-reviewer.toml` — in agy no shell at all; no tests) |
 | Role | drafts, verifies, rebuts/accepts, applies consensus | reads the repo directly and objects, proposes, asks — with evidence |
 
 ## Tool
 
 Invoke the `team-reviewer` subagent via `invoke_agent(agent_name="team-reviewer", prompt="...")`.
-Unavailable in this session → no debate: say so and ask the user to restart Gemini. Never use
+Unavailable in this session → no debate: say so and ask the user to restart the CLI. Never use
 `generalist` or another agent as the critic: no policy holds them, and they can write.
+In Antigravity CLI (agy): `invoke_agent` → `invoke_subagent`. Its `team-reviewer` has no shell (file
+reads and web search only): write the material it must check into `/tmp/team/<slug>/` (`git ls-files`,
+diffs) and name those files in each round's prompt.
 - Keep every round's prompt self-contained (since each `invoke_agent` call starts with a fresh
   context, include the proposal, current draft, and the accepted/rebutted summary from prior rounds).
 - Keep the full transcript per round in `/tmp/team/<slug>/debate-log.md` (`<slug>`: a short

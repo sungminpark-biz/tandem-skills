@@ -81,6 +81,9 @@ ponytail (필수 — Gemini CLI는 `install.sh`가 함께 설치하며, Claude C
 
 확인: 새 Claude Code 또는 Gemini CLI / Orca IDE 세션을 열고 `/team` 또는 `/debate`를 입력.
 Gemini CLI에서는 `node ~/.gemini/team-reviewer-probe.mjs`로 읽기 전용 리뷰어 정책을 검증할 수 있습니다.
+`--gemini`는 Gemini 판을 [Antigravity CLI](https://antigravity.google)(agy)에도 설치합니다(`~/.gemini/config/`).
+스킬은 같고, 리뷰어는 정책 파일 대신 셸 없이 파일 읽기와 웹 검색만 가진 agy용 정의를 씁니다. agy에서는 지휘자가
+diff와 파일 목록을 파일로 만들어 리뷰어에게 넘깁니다.
 
 ## 사용법
 
@@ -249,11 +252,11 @@ skills/
 agents/
   team-reviewer.md       Claude Code용 읽기 전용·재개 가능한 리뷰어/반론자 서브에이전트
 gemini/
-  skills/team/           Gemini CLI (및 Orca IDE)용 /team 스킬과 foundation.md
+  skills/team/           Gemini CLI·agy (및 Orca IDE)용 /team 스킬과 foundation.md
   skills/debate/         Gemini CLI용 /debate 스킬
   skills/ponytail/       Gemini CLI용 ponytail 스킬
   skills/ponytail-review/ Gemini CLI용 ponytail-review 스킬
-  agents/                Gemini CLI용 team-reviewer 서브에이전트
+  agents/                Gemini CLI용 team-reviewer 서브에이전트, agy용 team-reviewer.agy.md (셸 없음)
   policies/              team-reviewer 읽기 전용 PolicyEngine 규칙 (team-reviewer.toml)
   team-reviewer-probe.mjs ~/.gemini/policies 검증 스크립트
 install.sh

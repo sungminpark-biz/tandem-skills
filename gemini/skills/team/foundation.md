@@ -114,7 +114,7 @@ so in the request ("you implement it") still wins.
      (`--terminal <handle>`), each with spec S naming its slice.
    - Parallel slices start once the slices they depend on are committed: one worker each, at most 3 at
      once, `worker-start --spec … --worktree new-child --name <slice-id> --base-branch <the milestone
-     worktree's branch> --setup run --agent gemini --timeout-ms 120000 --json` (another implementer if
+     worktree's branch> --setup run --agent <gemini | antigravity: your own CLI> --timeout-ms 120000 --json` (another implementer if
      requested: SKILL "Orca worker"). Its code review, `git diff --stat` and definition-of-done re-run
      happen in its child path.
    - Each slice gets SKILL step 6 (code review, re-run definition of done, `ponytail-review`; a large

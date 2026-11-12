@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Installs the tandem skills into ~/.claude/ (Claude Code) and ~/.gemini/ (Gemini CLI).
+# Installs the tandem skills into ~/.claude/ (Claude Code) and ~/.gemini/ (Gemini CLI and
+# Antigravity CLI, which reads ~/.gemini/config).
 #
 #   ./install.sh                  copy into both ~/.claude and ~/.gemini (default)
 #   ./install.sh --link           symlink to this checkout so `git pull` updates in place
@@ -87,6 +88,13 @@ if [[ "$DO_GEMINI" -eq 1 ]]; then
   install_item "$HERE/gemini/policies/team-reviewer.toml" "$GEMINI_POLICIES/team-reviewer.toml" "$GEMINI_POLICIES-backup" "gemini policy team-reviewer.toml"
 
   install_item "$HERE/gemini/team-reviewer-probe.mjs" "$GEMINI_HOME/team-reviewer-probe.mjs" "$GEMINI_HOME/policies-backup" "gemini probe team-reviewer-probe.mjs"
+
+  # Antigravity CLI (agy) runs the same copy; it reads ~/.gemini/config, and its reviewer has no shell.
+  AGY_CONFIG="${AGY_CONFIG_DIR:-$GEMINI_HOME/config}"
+  for skill in team debate ponytail ponytail-review; do
+    install_item "$HERE/gemini/skills/$skill" "$AGY_CONFIG/skills/$skill" "$AGY_CONFIG/skills-backup" "agy skill $skill"
+  done
+  install_item "$HERE/gemini/agents/team-reviewer.agy.md" "$AGY_CONFIG/agents/team-reviewer.md" "$AGY_CONFIG/agents-backup" "agy agent team-reviewer"
 fi
 
 echo
@@ -99,4 +107,5 @@ fi
 if [[ "$DO_GEMINI" -eq 1 ]]; then
   echo "  gemini:  use /team or /debate in a Gemini CLI / Orca IDE session (restart session to reload)"
   echo "  policy:  node ~/.gemini/team-reviewer-probe.mjs"
+  echo "  agy:     use /team or /debate in a new Antigravity CLI session"
 fi
