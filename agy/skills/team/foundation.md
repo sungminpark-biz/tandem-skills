@@ -25,7 +25,7 @@ docs/design/foundation/
    customer data exist — in this service, or in another product on its database) · Open questions
    ```
    Every unknown is a question, never a guessed business decision: ask in batches of up to 4
-   (`ask_user` tool, recommended option first). **Gate**: show one line, caps, non-goals, candidate
+   (`ask_question` tool, recommended option first). **Gate**: show one line, caps, non-goals, candidate
    milestones, open questions; end your turn. Go on only on "OK" / "approve" / "go".
 3. **Decisions**: only what is expensive to reverse once code or data depend on it. Check: data model
    and source of truth, identity/auth, tenancy and permissions, external integrations, money and
@@ -51,7 +51,7 @@ docs/design/foundation/
    decisions / scope (modules) / definition of done (SKILL Rules: Tests) / depends on / risk (money,
    auth; data-changing migration, except before launch). Status `todo` → `done` (reviewed and
    committed); `blocked: <reason>`. Detail M1 only.
-5. **Review**: reviewer + risk reviewer (`invoke_agent(agent_name="team-reviewer", ...)`) with
+5. **Review**: reviewer + risk reviewer (two `invoke_subagent` calls, subagent `team-reviewer`) with
    template R plus: contradictions (decision vs charter, decision vs decision, slice vs decision); a
    missing expensive decision, or a cheap one listed; over-building against the caps; a safety rule
    whose cost the stage doesn't justify; M1 really touches every decision; a slice too big. ≤2 rounds.
@@ -72,10 +72,10 @@ decisions** (extra risk areas, database rules, what a test must check). **How th
 this skill**: a foundation line that sets the implementer, approval unit, review procedure, test runs
 or reports is not followed. Before launch, neither is a safety rule that guards only test data (not
 users, money, secrets or external services). The gate names each such line ("015: Claude implements →
-not followed: Orca worker (gemini)"; a safety rule with its cost per slice) and the milestone design
+not followed: Orca worker (agy)"; a safety rule with its cost per slice) and the milestone design
 doc records it; the user keeps one by saying so, or drops it for good with a Change. The user saying
 so in the request ("you implement it") still wins.
-1. **Plan** (≤10 minutes, parallel `codebase_investigator` / `generalist` subagents per area, plus
+1. **Plan** (≤10 minutes, surveying the code yourself area by area, plus
    SKILL step 1's search of today's options when a slice picks something new, then the product plan
    (SKILL Rules) for the milestone's capability when users see it and no milestone design doc has
    one yet): the milestone's slices
@@ -95,7 +95,7 @@ so in the request ("you implement it") still wins.
    ```
    ## Milestone M<n> — approval requested
    Design doc · product plan: its assumptions, or none (why) · implementer (one agent · model, never "A or B"; default:
-   gemini; you may change it here)
+   agy; you may change it here)
    · slices in order (parallel groups marked), one line each · shared interfaces and migrations ·
    risky slices · review: raised / accepted / rebutted / deferred · repo lines not followed
    (foundation, GEMINI.md, CLAUDE.md, guides), and why · each slice ends with a local commit of its own files (no push; a fix from the full
@@ -114,7 +114,7 @@ so in the request ("you implement it") still wins.
      (`--terminal <handle>`), each with spec S naming its slice.
    - Parallel slices start once the slices they depend on are committed: one worker each, at most 3 at
      once, `worker-start --spec … --worktree new-child --name <slice-id> --base-branch <the milestone
-     worktree's branch> --setup run --agent <gemini | antigravity: your own CLI> --timeout-ms 120000 --json` (another implementer if
+     worktree's branch> --setup run --agent antigravity --timeout-ms 120000 --json` (another implementer if
      requested: SKILL "Orca worker"). Its code review, `git diff --stat` and definition-of-done re-run
      happen in its child path.
    - Each slice gets SKILL step 6 (code review, re-run definition of done, `ponytail-review`; a large
@@ -130,17 +130,17 @@ so in the request ("you implement it") still wins.
      user's → mark `done (apply pending: <step>)` and stop; on their "done", run the marked commands
      and continue — no new gate. A failure: SKILL Rules: Tests.
    - End of the run, every approved slice committed: the coordinator starts the full suites once
-     (`run_shell_command` with `is_background: true` when long-running) and — when every slice of the
+     (`run_command` in the background when long-running) and — when every slice of the
      milestone is now `done` (a partial run leaves it to the run that finishes the milestone) — the
-     **milestone review**: `team-reviewer` subagents (`invoke_agent(agent_name="team-reviewer", ...)`)
-     on `git diff <Base>..HEAD`, one per area — one for ≤30 files, else up to 3 (e.g. data and server
+     **milestone review**: `team-reviewer` subagents (`invoke_subagent` calls in one turn)
+     on `git diff <Base>..HEAD` (written with `git ls-files` to `/tmp/team/<slug>/` first), one per area — one for ≤30 files, else up to 3 (e.g. data and server
      code; screens and tests; docs and production steps) — with the prompt below. No separate risk
      reviewer: the data and server reviewer also reads the risky slices for that risk. Check each
      reviewer's findings against the code as it returns. Once the suites have finished too, one fix
      round takes the accepted findings, those marked `→ milestone fix` and suite failures that need a
      fix (SKILL Rules: Tests): a worker in the milestone worktree, told which files the fixes may
      touch (the doc's Scope doesn't limit it); the milestone reviewers whose findings it fixes
-     re-check it (Round 2 `invoke_agent`) — the rest of it (`→ milestone fix` items, suite fixes) goes
+     re-check it (Round 2 `invoke_subagent`) — the rest of it (`→ milestone fix` items, suite fixes) goes
      to the milestone reviewer of its area, or, in a run without a milestone review, to a template C
      reviewer — and `ponytail-review` runs on its diff; then one local commit, which deletes the
      `→ milestone fix` items it fixed from `Deferred`, and the re-runs SKILL Rules: Tests names.
@@ -148,7 +148,7 @@ so in the request ("you implement it") still wins.
      whose findings they fix; a foundation line changes here only to apply an `accepted` decision
      record (anything else: Change).
      ```
-     The finished milestone, reviewed whole: worktree <path>, `git diff <Base>..HEAD`, design doc
+     The finished milestone, reviewed whole: worktree <path>, diff <its file> and file list <its file>, design doc
      <path> (its Deferred section too), docs/design/foundation/. Slice reviews and passing tests are
      not evidence: check afresh. Your area: <area>; read outside it only to follow a rule or data it
      sets or changes. No tests, not even to check one thing: the full suites are running.

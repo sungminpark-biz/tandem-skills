@@ -16,7 +16,7 @@ docs/design/foundation/
 1. **Inventory**: a foundation already exists → update it, don't recreate it. Read the existing docs,
    code and infra; one canonical place per decision (extract into the foundation, leave a pointer;
    whether to edit the user's docs is a charter question). Measure what exists, read-only.
-2. **Charter** (the user decides; 1–2 pages). Gemini drafts it (SKILL Rules: Product plan), started
+2. **Charter** (the user decides; 1–2 pages). agy drafts it (SKILL Rules: Product plan), started
    with the inventory: template P asking, instead of P's sections, for the charter below (an existing
    charter: the changes to it; `Stage` and caps as questions unless measured) plus candidate
    milestones as user-visible capabilities. Claude corrects it against the inventory:
@@ -27,7 +27,7 @@ docs/design/foundation/
    ```
    Every unknown is a question, never a guessed business decision: ask in batches of up to 4
    (AskUserQuestion, recommended option first). **Gate**: show one line, caps, non-goals, candidate
-   milestones, open questions, who drafted it (Gemini, or Claude and why); end your turn. Go on only
+   milestones, open questions, who drafted it (agy, or Claude and why); end your turn. Go on only
    on "OK" / "approve" / "go".
 3. **Decisions**: only what is expensive to reverse once code or data depend on it. Check: data model
    and source of truth, identity/auth, tenancy and permissions, external integrations, money and
@@ -93,7 +93,7 @@ the request ("you implement it") still wins.
 4. **Milestone gate**, then end your turn:
    ```
    ## Milestone M<n> — approval requested
-   Design doc · product plan: Gemini | Claude (why) | none, and its assumptions · implementer
+   Design doc · product plan: agy | Claude (why) | none, and its assumptions · implementer
    (one agent · model, never "A or B"; you may change it here) · slices in order (parallel
    groups marked), one line each · shared interfaces and
    migrations · risky slices · review: raised / accepted / rebutted / deferred · repo lines not

@@ -1,7 +1,7 @@
 ---
 name: team
 description: >-
-  Agent team workflow for Gemini CLI or Antigravity CLI (agy), in Orca IDE: the coordinator plans the
+  Agent team workflow for Antigravity CLI (agy), in Orca IDE: the coordinator plans the
   product, designs and reviews, an Orca worker builds (defaults to the coordinator's own CLI so zero
   Claude tokens are used, or another agent the user names). Feature: product plan (when users see the change) -> design doc ->
   independent read-only review (+ a risk reviewer for money, auth and, except before launch,
@@ -11,11 +11,10 @@ description: >-
   whole milestone alongside its full test suites. Foundation mode ("/team
   foundation <service>") drafts the charter, the expensive-to-reverse decisions and the milestone
   map with the user. Triggers: "/team", "team", "/team foundation", "/team M3" (a milestone or
-  slice), "design then have a worker implement it", "implement with gemini", "work as a team",
+  slice), "design then have a worker implement it", "implement with agy", "work as a team",
   "design the whole service from scratch", "re-check what /team built". Trivial edits (1-2 files) don't need a team - just do
-  them. If you were running a /team run and a state_snapshot replaced your earlier turns, call
-  activate_skill(name="team") (agy: re-read this file) once before the next step (not again until the next state_snapshot),
-  and in a milestone run re-read its foundation.md. In a /team run Orca workers write the code (a
+  them. If agy summarized your earlier turns during a /team run, re-read this file once before the
+  next step (not again until the next summary), and in a milestone run re-read its foundation.md. In a /team run Orca workers write the code (a
   released worker means a new one), not you, unless the user says to.
 ---
 
@@ -27,26 +26,13 @@ subagent prompt (survey, reviewers) and worker spec in the user's language and a
 it, keeping template headings such as `## Verdict:` as written: English results are what pull the
 replies into English.
 
-## Gemini CLI or agy
-This copy runs in Gemini CLI and in Antigravity CLI (agy): same steps, only the coordinator's own tools
-differ. In agy read the Gemini CLI names here and in `foundation.md` as: `invoke_agent(agent_name=X,
-…)` → `invoke_subagent` with subagent X · `activate_skill(name=X)` → read X's `SKILL.md`
-(`orchestration`: `orca skills get orchestration`) · `ask_user` → `ask_question` ·
-`google_web_search` / `web_fetch` → `search_web` · `run_shell_command` with `is_background: true` →
-`run_command` in the background · a `state_snapshot` → agy's own context summary ·
-`codebase_investigator` / `generalist` → none: survey the code yourself. agy's `team-reviewer`
-(`~/.gemini/config/agents/team-reviewer.md`) has no shell, only file reads and web search, so it can't
-write and can't run git or grep: before every agy review, write `git ls-files` and, for a code review,
-the worktree's `git status --short` and its diff against the design's base into `/tmp/team/<slug>/`,
-and name those files in the prompt (it reads new files by path).
-
 ## Route
 - A request to re-check or re-review work this skill already reported ("check it thoroughly")
   → Feature step 6 again with fresh reviewers: a feature with template C, a milestone with the
   milestone review's reviewers and prompt (`foundation.md` Build). The coordinator makes the
   accepted fixes itself (no worker round; left uncommitted), after `git add -A` (staging, not a
   commit) so `git diff` shows only them; the reviewer that raised them re-checks them (Round 2
-  reviews in Gemini CLI), `ponytail-review` runs on that diff and the tests Rules: Tests names
+  reviews), `ponytail-review` runs on that diff and the tests Rules: Tests names
   re-run; report T.
 - `/team foundation …`, a new service, or a re-founding → `foundation.md` "Found".
 - `docs/design/foundation/` exists and the request names a milestone or slice → `foundation.md`
@@ -56,9 +42,8 @@ and name those files in the prompt (it reads new files by path).
 (`foundation.md` is next to this file; read it only for those routes.)
 
 ## Rules
-- **Roles.** The coordinator (Gemini) plans the product (next rule), designs, reviews and decides; an
-  Orca worker writes the code (below): **your own CLI (`--agent gemini` in Gemini CLI, `--agent
-  antigravity` in agy; no `--model` flag)** by default so zero Claude tokens are consumed, unless the user explicitly names another Orca agent
+- **Roles.** The coordinator (agy) plans the product (next rule), designs, reviews and decides; an
+  Orca worker writes the code (below): **your own CLI (`--agent antigravity`, no `--model` flag)** by default so zero Claude tokens are consumed, unless the user explicitly names another Orca agent
   (e.g. `"claude로 구현해"`, `"implement with sonnet"` → `--agent claude --model sonnet`) in the
   request or at the gate — it holds for that feature or milestone run. No Orca → the user runs the
   spec in their agent. "You implement it" / "직접 구현해" → the coordinator implements directly;
@@ -75,7 +60,7 @@ and name those files in the prompt (it reads new files by path).
   how other products do it — no files, APIs or schemas yet (the design does those). Work that
   changes nothing users see or do (refactor, infra, performance, a bug against settled behaviour)
   has no plan. Never decide a business call yourself: make it a question. Up to 4 open questions
-  that most change the design go to the user before the design doc (`ask_user`, recommended option
+  that most change the design go to the user before the design doc (`ask_question`, recommended option
   first); the rest take your recommendation and go on the gate as assumptions (a charter asks them
   all: `foundation.md` Found).
 - **Approve before code.** Nothing is implemented until the user approves the design (or milestone).
@@ -89,22 +74,23 @@ and name those files in the prompt (it reads new files by path).
   local commits, their fix commits and the milestone review's fix). Scratch files go to
   `/tmp/team/<slug>/`.
 - **Independent review.** Every design and every diff is reviewed by a read-only `team-reviewer`
-  subagent via `invoke_agent(agent_name="team-reviewer", prompt="...")`. A **risk reviewer** (a
-  second parallel `invoke_agent(agent_name="team-reviewer", ...)` call) joins in parallel for money,
+  subagent via `invoke_subagent` with subagent `team-reviewer`. A **risk reviewer** (a second
+  `invoke_subagent` call in the same turn) joins in parallel for money,
   auth/permissions, every foundation review, and — except before launch (the Before launch rule) —
   migrations that change or drop existing data and customer data; a project's foundation may name
-  more. Every review prompt is self-contained (paths, measured facts, the template) and ends with:
+  more. The reviewer has only `read_file` and `search_web` (no shell, no edit tools): before every
+  review, write `git ls-files` and, for a code review, the worktree's `git status --short` and its
+  diff against the design's base into `/tmp/team/<slug>/`, and name those files in the prompt (it
+  reads new files by path). Every review prompt is self-contained (paths, measured facts, the template) and ends with:
   "Review only: no edits, no DB/MCP writes, no deploys, no tests (the coordinator runs them). Stop
   after 30 tool calls (60 for a milestone design review, the milestone review or a foundation
   review) and list what you didn't check." Wait for every reviewer you started, then check each
   finding against the code yourself; accept, rebut with evidence, or defer (Deferring a finding).
-- **Round 2 reviews in Gemini CLI:** Because `invoke_agent` starts a fresh subagent context each call,
-  when running Round 2 for a reviewer, pass a self-contained prompt that includes the design doc/diff
+- **Round 2 reviews:** when running Round 2 for a reviewer, pass a self-contained prompt that includes the design doc/diff
   path, the Round 1 findings, and:
   `Accepted: … → changed: … / Rebutted: … — evidence: … / Deferred: … — why: … / Re-check only what changed and answer in the same format.`
 - **ponytail is mandatory.** The design reviewer applies its ladder to every component;
-  `ponytail-review` runs on every diff (activate via `activate_skill(name="ponytail-review")` and
-  apply its rules to the diff). Where ponytail and these rules clash, these rules win: documents are
+  `ponytail-review` runs on every diff (read its `SKILL.md` and apply its rules to the diff). Where ponytail and these rules clash, these rules win: documents are
   written in full, gates are never skipped, the worker asks before cutting anything the design
   specifies.
 - **Rounds**: design review ≤2 and code review ≤2 — round 1 is the first review, round 2 re-checks
@@ -121,9 +107,8 @@ and name those files in the prompt (it reads new files by path).
   with its reason; one held for the milestone review's fix is marked `→ milestone fix`. A deferred
   Critical or required change is named in round 2 like a rebuttal; a review whose only open items
   are deferred counts as approved once its round 2 doesn't contest a deferral.
-- **Parallel where it pays**: survey with parallel `codebase_investigator` or `generalist` subagents
-  per area; independent slices build in parallel, each in its own worktree; a large diff gets one
-  reviewer per area. Survey agents find and quote; the coordinator decides.
+- **Parallel where it pays**: survey the code yourself first, broad areas one by one; independent
+  slices build in parallel, each in its own worktree; a large diff gets one reviewer per area.
 - **Tests: narrow per change, full once** (how often and how widely tests run is how the team works).
   - A definition of done names the tests covering the change — lint, types, and the unit, integration
     and e2e tests it touches (leave full production builds such as `next build` to the full suites
@@ -145,11 +130,10 @@ and name those files in the prompt (it reads new files by path).
     the fix needs); a milestone commits the fix, a feature leaves it uncommitted with the rest. Still
     failing → stop and report.
 - **Preflight**, once before the survey:
-  - Ensure `ponytail-review` is available in `<available_skills>` (activate with
-    `activate_skill(name="ponytail-review")` when needed).
-  - Check if the project uses an MCP server (e.g. Supabase/Postgres in `.gemini/settings.json` or
-    `.mcp.json`). If a required project database MCP is disconnected or needs authentication, ask the
-    user to run `/mcp auth <server>`, end your turn, and continue when they say it's done. Never work
+  - Ensure the `ponytail-review` skill is installed (read its `SKILL.md` when needed).
+  - Check if the project uses an MCP server (e.g. Supabase/Postgres: `agy mcp list`, or the project's
+    own MCP config). If a required project database MCP is disconnected or needs authentication, ask the
+    user to authenticate it in `/mcp`, end your turn, and continue when they say it's done. Never work
     around a disconnected project DB MCP with guesses; if not installed or unreachable, state so once
     and write `not verified: <reason>` where it would have been used.
   - `git fetch` (failed → say so; no remote → the local default branch), then compare HEAD with the
@@ -161,15 +145,15 @@ and name those files in the prompt (it reads new files by path).
 
 ## Feature
 1. **Survey** (≤10 minutes): existing assets, call sites, measured scale from read-only sources.
-   Broad codebase → parallel `codebase_investigator` / `generalist` subagents, one per area. If the
+   Broad codebase → survey it yourself, one area at a time. If the
    design picks something new (a tool, service, library or approach), search today's options for it on
-   the web (`google_web_search` / `web_fetch`): the model's memory has gaps even before its cutoff, so
+   the web (`search_web`): the model's memory has gaps even before its cutoff, so
    the choice rests on what was found, not what was recalled. Then, when users see the change, the
    product plan (Rules): template P from what the survey found, then its open questions.
 2. **Design doc** `docs/design/<YYYYMMDD>-<slug>.md` (template D). Skeleton first, then fill in.
 3. **Design review** (template R): write `/tmp/team/<slug>/<name>-req.md` (paths, measured facts,
    template R) and start the `team-reviewer` subagent (+ risk reviewer if applicable) in parallel via
-   `invoke_agent(agent_name="team-reviewer", prompt="...")`. Round 2 goes only to a reviewer whose
+   `invoke_subagent` calls in one turn. Round 2 goes only to a reviewer whose
    Critical you rebutted or deferred: invoke `team-reviewer` with the Round 1 context plus "Accepted:
    … → changed: … / Rebutted: … — evidence: … / Deferred: … — why: … / Re-check and answer in the
    same format."
@@ -177,11 +161,11 @@ and name those files in the prompt (it reads new files by path).
 5. **Build**: the worker with the spec (template S). The coordinator doesn't edit source meanwhile. A
    worker question that changes the design → revise the doc before answering (foundation-level →
    `foundation.md` "Change").
-6. **Code review**, together in a single parallel turn: `invoke_agent(agent_name="team-reviewer", ...)`
-   with template C (worktree path, changed files, design doc, what to check hard — point to the
+6. **Code review**, together in a single parallel turn: `invoke_subagent` with subagent `team-reviewer`
+   and template C (worktree path, changed files, design doc, what to check hard — point to the
    design's sections instead of restating their rules: a restated rule becomes the reviewer's answer
-   key; the reviewer's shell is read-only and runs no tests); in the same turn, activate
-   `ponytail-review` via `activate_skill(name="ponytail-review")` AND run a shell command that checks
+   key; the reviewer has no shell and runs no tests); in the same turn, read `ponytail-review`'s
+   `SKILL.md` AND run a shell command (`run_command`) that checks
    `git diff --stat` against the reported files and the doc's scope, prints `git diff` for your
    `ponytail-review` pass, and re-runs the definition of done, minus `after <step>` commands (the
    worker's report is a claim, not evidence). Judge each `ponytail-review` item like a finding (it
@@ -197,14 +181,13 @@ and name those files in the prompt (it reads new files by path).
 - Needs an Orca worktree: `orca worktree current --json` → `"ok": true`. Without Orca, after the gate
   give the user the spec with "ask me here" instead of `ask` and "list the modified files and the
   definition-of-done output" instead of `worker_done`; they come back for step 6.
-- Orca's own guide (`orca skills get orchestration`) is the authority on commands; where it and this
-  file disagree, the guide wins. Activate the `orchestration` skill via
-  `activate_skill(name="orchestration")` when starting orchestration.
+- Orca's own guide (`orca skills get orchestration`; read it when starting orchestration) is the
+  authority on commands; where it and this file disagree, the guide wins.
 - Start (one run per feature or milestone):
   ```bash
   orca orchestration run-create --objective "<feature>" --json
-  orca orchestration worker-start --spec "<spec>" --worktree current --agent <gemini | antigravity: your own CLI> --timeout-ms 120000 --json
-  # another implementer if the user named one: Claude --agent claude --model sonnet; agy --agent antigravity
+  orca orchestration worker-start --spec "<spec>" --worktree current --agent antigravity --timeout-ms 120000 --json
+  # another implementer if the user named one, e.g. Claude: --agent claude --model sonnet
   orca orchestration worker-show --dispatch <ctx_id> --json     # → terminal handle
   orca terminal read --terminal <handle> --screen --json        # must show the chosen agent (your own CLI by default), or stop
   # no terminal → orca orchestration worker-read --dispatch <ctx_id> --source auto --json
@@ -287,8 +270,8 @@ Reply "approve" or "go", or tell me what to change.
 ## Goal — who gets what  ## Flows — each actor's steps, happy path first
 ## Policies and edge cases — rules, limits, permissions, failure, empty / duplicate / late input, each
 with its behaviour  ## Existing options — how products in this domain do it, searched today
-(`google_web_search`), sources with dates (or none); a source the design relies on is opened
-(`web_fetch`) first  ## Not doing  ## Open questions — business calls
+(`search_web`), sources with dates (or none); a source the design relies on is opened
+(`search_web`) first  ## Not doing  ## Open questions — business calls
 only, each with options and your recommendation
 ```
 **S — worker spec**
@@ -313,15 +296,12 @@ fix, which ones re-ran) · production steps left to do (the design doc's: who, w
 and deferred findings with why.
 
 ## Gotchas
-- Gemini CLI cancels a shell command after 5 minutes without output on stdout or stderr
-  (`tools.shell.inactivityTimeout`). Let tests and builds print as they run (no `| tail`, `| grep` or
-  `> file` in the foreground); full suites run with `is_background: true`, output to
-  `/tmp/team/<slug>/`. `orca orchestration check --wait` stays alive through its 15-second keepalive
-  lines on stderr: don't silence them.
-- The reviewer is the `team-reviewer` subagent (`invoke_agent(agent_name="team-reviewer", ...)`),
-  read-only through `~/.gemini/policies/team-reviewer.toml` (agy: through having no shell). Unavailable
-  in this session → the review failed: say so and ask the user to restart the CLI. Never review through `generalist` or another
-  agent: no policy holds them, and they can write.
+- Run long commands (full suites, builds) with `run_command` in the background, output to
+  `/tmp/team/<slug>/`.
+- The reviewer is the `team-reviewer` subagent (`invoke_subagent` with subagent `team-reviewer`,
+  `~/.gemini/config/agents/team-reviewer.md`), read-only because it has no shell or edit tools.
+  Unavailable in this session → the review failed: say so and ask the user to restart the CLI. Never
+  review through another agent: it can write.
 - No `## Verdict:` → invoke `team-reviewer` once more requiring the verdict; still nothing → the
   review failed (say so). A review that lists unchecked areas is partial: check them yourself, never
   call it a full approval.

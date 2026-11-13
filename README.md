@@ -1,6 +1,6 @@
 # tandem-skills
 
-**Gemini plans. Claude designs and reviews. A worker builds — Claude Sonnet, or another agent you name.** Agent-team skills for Claude Code.
+**agy plans. Claude designs and reviews. A worker builds — Claude Sonnet, or another agent you name.** Agent-team skills for Claude Code.
 
 [한국어 README](README.ko.md)
 
@@ -8,7 +8,7 @@ Like a tandem bicycle: one rider steers, the other pedals. Open Claude Code in y
 `/team <task>`, and you get:
 
 ```
-Gemini CLI drafts the product plan — flows, policies, edge cases, open business questions
+Antigravity CLI (agy) drafts the product plan — flows, policies, edge cases, open business questions
   (headless and read-only, only when users see the change); you answer its business questions
   → Claude drafts the design
   → a read-only Claude reviewer tries to break it (reads the repo, cites file:line);
@@ -16,7 +16,7 @@ Gemini CLI drafts the product plan — flows, policies, edge cases, open busines
      data-changing migrations and customer data)
   → Claude rebuts or accepts each point with evidence, revises the doc   (≤2 rounds)
   → ★ you approve the design ★
-  → a worker implements: Claude Sonnet, or another Orca agent you name such as Gemini CLI
+  → a worker implements: Claude Sonnet, or another Orca agent you name such as agy
      (a supervised Orca worker in its own terminal tab)
   → the reviewer checks the diff against the design, Claude re-runs the tests,
      ponytail-review hunts over-engineering                                    (≤2 rounds)
@@ -27,7 +27,7 @@ Starting a whole service from scratch? `/team foundation <service>` first settle
 decisions that are expensive to reverse and a milestone map — then it is built a milestone at a time:
 one design, one review and one approval per milestone, its slices built back to back.
 
-No MCP, no daemon, no scripts: two `SKILL.md` files, one reviewer subagent and one Gemini policy file. The implementer runs as
+No MCP, no daemon, no scripts: two `SKILL.md` files, one reviewer subagent and one read-only planner agent for agy. The implementer runs as
 an [Orca](https://github.com/stablyai/orca) worker; without Orca, you implement the approved design in
 `claude --model sonnet` and come back for the review.
 
@@ -58,37 +58,37 @@ from the one that wrote it.
 - [Orca](https://github.com/stablyai/orca) for the supervised worker with a visible terminal
   tab. Without it, you run the implementation yourself in `claude --model sonnet` and come back for
   the review; design, review and foundation mode work without it.
-- Recommended: [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`gemini` on PATH, logged in)
-  for the product plan. Without it, or when it fails, Claude writes the plan and the gate says so.
-  The planner sends what it reads of your repo to Google
+- Recommended: [Antigravity CLI](https://antigravity.google) (`agy` on PATH, signed in so it runs
+  without a prompt) for the product plan. Without it, or when it fails, Claude writes the plan and the
+  gate says so. The planner sends what it reads of your repo to Google
 - Recommended: the [context7](https://github.com/upstash/context7) plugin, for the design's currency
   check (`/plugin install context7@claude-plugins-official`, then log in once with `/mcp`). Before
   designing, `/team` checks that context7 and the project's database MCP are connected and asks you to
   authenticate one that isn't
 
 Tested with Claude Code 2.1.273–2.1.286 (Claude Opus 5 / 5.5 driver, Sonnet 5.5 workers), Orca
-1.4.204–1.4.220 and Gemini CLI 0.65.0–0.66.0 on macOS.
+1.4.204–1.4.220 and Antigravity CLI 1.5 on macOS.
 
 ## Install
 
 ```bash
 git clone https://github.com/sungminpark-biz/tandem-skills.git
-cd tandem-skills && ./install.sh          # copies into both ~/.claude/ and ~/.gemini/
+cd tandem-skills && ./install.sh          # copies into both ~/.claude/ and agy's ~/.gemini/config/
 # or: ./install.sh --link                 # symlink, so `git pull` updates in place
-# or: ./install.sh --claude / --gemini    # install for one CLI only
+# or: ./install.sh --claude / --agy       # install for one CLI only
 ```
 
-ponytail (required; bundled automatically for Gemini CLI, install via plugin in Claude Code):
+ponytail (required; bundled automatically for agy, install via plugin in Claude Code):
 ```
 /plugin marketplace add DietrichGebert/ponytail
 /plugin install ponytail@ponytail
 ```
 
-Check: open a new Claude Code or Gemini CLI / Orca IDE session and type `/team` or `/debate`.
-For Gemini CLI, verify the read-only reviewer policy with `node ~/.gemini/team-reviewer-probe.mjs`.
-`--gemini` also installs the Gemini copy for [Antigravity CLI](https://antigravity.google) (agy), which
-reads `~/.gemini/config/`: the same skills, and a reviewer with no shell (file reads and web search
-only) in place of the policy file. In agy the coordinator writes the diff and file list for it.
+Check: open a new Claude Code or agy / Orca IDE session and type `/team` or `/debate`. `--claude`
+also installs `team-planner`, the read-only agy agent Claude's `/team` starts for the product plan
+(`agy agents` lists it). `--agy` installs the agy copy of the skills into `~/.gemini/config/`, with a
+reviewer that has no shell (file reads and web search only): the coordinator writes the diff and file
+list for it.
 
 ## Usage
 
@@ -101,8 +101,8 @@ Inside an Orca worktree, in Claude Code:
 ```
 
 Claude will:
-1. start Gemini CLI in the background (`gemini -p` under `plan-policy.toml`, which allows only reading
-   files and web search) to draft the product plan — flows, policies and edge cases, how other products
+1. start agy in the background (`agy -p --agent team-planner`, an agent with only file reads and web
+   search) to draft the product plan — flows, policies and edge cases, how other products
    do it, what isn't built, open business questions — while it surveys the code (parallel Explore
    agents on Sonnet for a broad codebase); ask you the plan's business questions that change scope;
    then write `docs/design/<date>-<slug>.md` (the plan as decided, scope, signatures, order,
@@ -113,7 +113,7 @@ Claude will:
    code, and revise the doc, rebut, or defer, with its reason, what can't do real harm
 3. **stop and show you a summary — nothing is implemented until you say "approve"**
 4. spawn the worker in Orca (`worker-start --spec … --agent claude --model sonnet`, or
-   `--agent antigravity` (agy), `--agent gemini` and the like when you named another agent — it runs
+   `--agent antigravity` (agy), `--agent codex` and the like when you named another agent — it runs
    its own configured model), which writes the
    code with ponytail inside the design's scope, and answer its questions
 5. review the diff (a spec check: missing, unrequested, implemented-but-wrong, each quoting the
@@ -129,7 +129,7 @@ code itself instead of a worker; the review step stays the same. `sonnet` is an 
 follows the newest Sonnet.
 
 To implement with another agent Orca can launch, say so in the request or at the gate ("implement with
-gemini"); it holds for that feature or milestone run, and its code is reviewed by Opus. Its spec tells it
+agy"); it holds for that feature or milestone run, and its code is reviewed by Opus. Its spec tells it
 to read the repo's CLAUDE.md files, which such agents don't load on their own. A worker stuck on
 one model step for two waits in a row (some agents have no model timeout) is stopped and restarted once
 in the same worktree.
@@ -152,7 +152,7 @@ In Claude Code:
 ```
 
 Claude will:
-1. have Gemini CLI draft the charter — who, core flows, success/failure signals, design caps,
+1. have agy draft the charter — who, core flows, success/failure signals, design caps,
    non-goals, candidate milestones as user-visible capabilities — correct it against the code and
    write `docs/design/foundation/charter.md`. Every unknown becomes a question for you; business calls are yours
 2. write one record per expensive-to-reverse decision (`decisions/NNN-<slug>.md`: data model,
@@ -164,7 +164,7 @@ Claude will:
 5. **stop for your approval**, then propose M1
 
 Then build it a milestone at a time: `/team M3` (a milestone or slice name). When users see the
-milestone, Gemini plans it first. Claude writes one design doc for the whole milestone (the plan and
+milestone, agy plans it first. Claude writes one design doc for the whole milestone (the plan and
 shared interfaces first, then each slice), gets it reviewed once, and you approve once. The slices
 are then built back to back: one worker takes dependent slices one after another, independent slices
 get their own worker in a child worktree in parallel, and every slice gets its code review and a
@@ -205,7 +205,7 @@ deliberately not built).
 | Piece | Mechanism | Effect |
 |---|---|---|
 | Reviewers and the debate critic | `team-reviewer` subagent: `Write`, `Edit`, `NotebookEdit` disallowed | No edit tools; they read the repo and run commands (their Bash isn't sandboxed — see Limitations) |
-| Planner | Gemini CLI headless under `plan-policy.toml`, loaded as an admin policy so it outranks user policies | Only file reads and web search: no edits, no shell, no URL fetches, no MCP tools. `--approval-mode plan` is not used — headless, it switches itself to YOLO |
+| Planner | agy headless as `team-planner`, an agent whose only tools are file reads and web search; an unknown agent name is an error, not a fallback | No edits, no shell, no MCP tools; it gets the repo's file list as a file |
 | Worker | Orca worker spec: the design's scope of change, "do not commit", questions through Orca's `ask` | Changes stay inside the approved scope, uncommitted, for review |
 | Approval gates | skill rule | The driver must end its turn and wait after the design (and the foundation) is final |
 
@@ -232,17 +232,15 @@ Other details that came out of real runs:
 
 ## Limitations
 
-- The product planner is Gemini CLI; its plan is a draft that Claude checks against the code, and
+- The product planner is agy; its plan is a draft that Claude checks against the code, and
   every technical choice stays Claude's.
 - Reviewer and critic are Claude models; the worker is Claude Sonnet unless you name another agent.
   The code review always crosses models (Opus reviews Sonnet's or another agent's code, Sonnet reviews
-  Claude's own). The Gemini CLI copy runs coordinator, worker and reviewer on one Gemini model by
-  default: its reviews are independent only through a fresh reviewer context and the worker writing
-  the code.
-- Long runs get compacted. Claude Code re-attaches only about the first 5,000 tokens of a skill, and
-  Gemini CLI's summary keeps none of it; the skill tells the driver to re-read it after a compaction
-  (on Gemini through its description, the one part sent every turn). Like the gates, that is model
-  compliance.
+  Claude's own). The agy copy runs coordinator, worker and reviewer on one model by default: its
+  reviews are independent only through a fresh reviewer context and the worker writing the code.
+- Long runs get compacted. Claude Code re-attaches only about the first 5,000 tokens of a skill; the
+  skill tells the driver to re-read it after a compaction (in agy through its description). Like the
+  gates, that is model compliance.
 - A non-Claude implementer has not been through a full milestone run yet. It must run unattended: an
   agent that stops for confirmation prompts or whose login expires mid-run needs a human.
 - The reviewer's Bash isn't sandboxed; "review only, no writes to databases or external services" is a
@@ -265,18 +263,16 @@ Other details that came out of real runs:
 skills/
   team/SKILL.md          routing, rules, feature flow, Orca worker commands, templates (Claude Code)
   team/foundation.md     found / milestone run / change   (read only for those routes)
-  team/plan-policy.toml  Gemini CLI policy for the product plan: read files and search the web only
   debate/SKILL.md        the debate loop (Claude Code)
 agents/
   team-reviewer.md       read-only, resumable reviewer / critic subagent for Claude Code
-gemini/
-  skills/team/           /team skill and foundation.md adapted for Gemini CLI and agy (and Orca IDE)
-  skills/debate/         /debate skill adapted for Gemini CLI
-  skills/ponytail/       ponytail skill bundled for Gemini CLI
-  skills/ponytail-review/ ponytail-review skill bundled for Gemini CLI
-  agents/                team-reviewer subagent for Gemini CLI, and team-reviewer.agy.md for agy (no shell)
-  policies/              team-reviewer.toml read-only PolicyEngine rules for team-reviewer
-  team-reviewer-probe.mjs PolicyEngine verification script for ~/.gemini/policies
+agy/
+  skills/team/           /team skill and foundation.md adapted for Antigravity CLI (and Orca IDE)
+  skills/debate/         /debate skill adapted for agy
+  skills/ponytail/       ponytail skill bundled for agy
+  skills/ponytail-review/ ponytail-review skill bundled for agy
+  agents/team-reviewer.md reviewer / critic subagent for agy: file reads and web search only
+  agents/team-planner.md  product planner Claude's /team starts in agy: file reads and web search only
 install.sh
 CLAUDE.md                rules for editing this repo: ports, what survives a compaction
 ```

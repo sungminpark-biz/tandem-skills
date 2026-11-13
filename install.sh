@@ -1,38 +1,38 @@
 #!/usr/bin/env bash
-# Installs the tandem skills into ~/.claude/ (Claude Code) and ~/.gemini/ (Gemini CLI and
-# Antigravity CLI, which reads ~/.gemini/config).
+# Installs the tandem skills into ~/.claude/ (Claude Code) and ~/.gemini/config/ (Antigravity CLI, agy).
 #
-#   ./install.sh                  copy into both ~/.claude and ~/.gemini (default)
-#   ./install.sh --link           symlink to this checkout so `git pull` updates in place
-#   ./install.sh --claude         install only for Claude Code
-#   ./install.sh --gemini         install only for Gemini CLI
-#   ./install.sh --gemini --link  combinable
+#   ./install.sh               copy into both (default)
+#   ./install.sh --link        symlink to this checkout so `git pull` updates in place
+#   ./install.sh --claude      install only for Claude Code (plus agy's team-planner, which plans its /team)
+#   ./install.sh --agy         install only for Antigravity CLI
+#   ./install.sh --agy --link  combinable
 #
 # Existing files/folders are moved to *-backup/<name>.<timestamp> outside the active
-# skills/agents/policies directories so they are never loaded as duplicates.
+# skills/agents directories so they are never loaded as duplicates.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODE="copy"
 DO_CLAUDE=0
-DO_GEMINI=0
+DO_AGY=0
 
 for arg in "$@"; do
   case "$arg" in
     --link) MODE="--link" ;;
     --claude) DO_CLAUDE=1 ;;
-    --gemini) DO_GEMINI=1 ;;
+    --agy) DO_AGY=1 ;;
     *)
-      echo "Usage: $0 [--link] [--claude] [--gemini]" >&2
+      echo "Usage: $0 [--link] [--claude] [--agy]" >&2
       exit 1
       ;;
   esac
 done
 
-if [[ "$DO_CLAUDE" -eq 0 && "$DO_GEMINI" -eq 0 ]]; then
+if [[ "$DO_CLAUDE" -eq 0 && "$DO_AGY" -eq 0 ]]; then
   DO_CLAUDE=1
-  DO_GEMINI=1
+  DO_AGY=1
 fi
+AGY_CONFIG="${AGY_CONFIG_DIR:-$HOME/.gemini/config}"
 
 install_item() {
   local src="$1"
@@ -72,29 +72,16 @@ if [[ "$DO_CLAUDE" -eq 1 ]]; then
 
   CLAUDE_AGENTS="${CLAUDE_AGENTS_DIR:-$HOME/.claude/agents}"
   install_item "$HERE/agents/team-reviewer.md" "$CLAUDE_AGENTS/team-reviewer.md" "$CLAUDE_AGENTS-backup" "claude agent team-reviewer"
+
+  # Claude's /team has agy draft the product plan as this read-only agent.
+  install_item "$HERE/agy/agents/team-planner.md" "$AGY_CONFIG/agents/team-planner.md" "$AGY_CONFIG/agents-backup" "agy agent team-planner"
 fi
 
-if [[ "$DO_GEMINI" -eq 1 ]]; then
-  GEMINI_HOME="${GEMINI_HOME_DIR:-$HOME/.gemini}"
-  GEMINI_SKILLS="${GEMINI_SKILLS_DIR:-$GEMINI_HOME/skills}"
+if [[ "$DO_AGY" -eq 1 ]]; then
   for skill in team debate ponytail ponytail-review; do
-    install_item "$HERE/gemini/skills/$skill" "$GEMINI_SKILLS/$skill" "$GEMINI_SKILLS-backup" "gemini skill $skill"
+    install_item "$HERE/agy/skills/$skill" "$AGY_CONFIG/skills/$skill" "$AGY_CONFIG/skills-backup" "agy skill $skill"
   done
-
-  GEMINI_AGENTS="${GEMINI_AGENTS_DIR:-$GEMINI_HOME/agents}"
-  install_item "$HERE/gemini/agents/team-reviewer.md" "$GEMINI_AGENTS/team-reviewer.md" "$GEMINI_AGENTS-backup" "gemini agent team-reviewer"
-
-  GEMINI_POLICIES="${GEMINI_POLICIES_DIR:-$GEMINI_HOME/policies}"
-  install_item "$HERE/gemini/policies/team-reviewer.toml" "$GEMINI_POLICIES/team-reviewer.toml" "$GEMINI_POLICIES-backup" "gemini policy team-reviewer.toml"
-
-  install_item "$HERE/gemini/team-reviewer-probe.mjs" "$GEMINI_HOME/team-reviewer-probe.mjs" "$GEMINI_HOME/policies-backup" "gemini probe team-reviewer-probe.mjs"
-
-  # Antigravity CLI (agy) runs the same copy; it reads ~/.gemini/config, and its reviewer has no shell.
-  AGY_CONFIG="${AGY_CONFIG_DIR:-$GEMINI_HOME/config}"
-  for skill in team debate ponytail ponytail-review; do
-    install_item "$HERE/gemini/skills/$skill" "$AGY_CONFIG/skills/$skill" "$AGY_CONFIG/skills-backup" "agy skill $skill"
-  done
-  install_item "$HERE/gemini/agents/team-reviewer.agy.md" "$AGY_CONFIG/agents/team-reviewer.md" "$AGY_CONFIG/agents-backup" "agy agent team-reviewer"
+  install_item "$HERE/agy/agents/team-reviewer.md" "$AGY_CONFIG/agents/team-reviewer.md" "$AGY_CONFIG/agents-backup" "agy agent team-reviewer"
 fi
 
 echo
@@ -103,9 +90,8 @@ if [[ "$DO_CLAUDE" -eq 1 ]]; then
   echo "  claude:  type /team or /debate in a Claude Code session (team-reviewer shows up in a new session)"
   echo "  ponytail (required by /team): /plugin marketplace add DietrichGebert/ponytail,"
   echo "           then /plugin install ponytail@ponytail in Claude Code"
+  echo "  planner: agy agents   # lists team-planner (needs agy on PATH, signed in)"
 fi
-if [[ "$DO_GEMINI" -eq 1 ]]; then
-  echo "  gemini:  use /team or /debate in a Gemini CLI / Orca IDE session (restart session to reload)"
-  echo "  policy:  node ~/.gemini/team-reviewer-probe.mjs"
+if [[ "$DO_AGY" -eq 1 ]]; then
   echo "  agy:     use /team or /debate in a new Antigravity CLI session"
 fi

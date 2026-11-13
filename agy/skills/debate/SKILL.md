@@ -24,21 +24,20 @@ result.
 
 ## Roles
 
-| | Coordinator (Gemini, the driver) | Critic (`team-reviewer` subagent) |
+| | Coordinator (agy, the driver) | Critic (`team-reviewer` subagent) |
 |---|---|---|
-| Rights | edit, run, final synthesis | **no edit tools** (`team-reviewer` subagent: no `write_file`/`replace`; read-only shell, enforced by `~/.gemini/policies/team-reviewer.toml` — in agy no shell at all; no tests) |
+| Rights | edit, run, final synthesis | **no edit tools, no shell** (`team-reviewer` subagent: only `read_file` and `search_web`; no tests) |
 | Role | drafts, verifies, rebuts/accepts, applies consensus | reads the repo directly and objects, proposes, asks — with evidence |
 
 ## Tool
 
-Invoke the `team-reviewer` subagent via `invoke_agent(agent_name="team-reviewer", prompt="...")`.
+Invoke the critic with `invoke_subagent`, subagent `team-reviewer`.
 Unavailable in this session → no debate: say so and ask the user to restart the CLI. Never use
-`generalist` or another agent as the critic: no policy holds them, and they can write.
-In Antigravity CLI (agy): `invoke_agent` → `invoke_subagent`. Its `team-reviewer` has no shell (file
-reads and web search only): write the material it must check into `/tmp/team/<slug>/` (`git ls-files`,
-diffs) and name those files in each round's prompt.
-- Keep every round's prompt self-contained (since each `invoke_agent` call starts with a fresh
-  context, include the proposal, current draft, and the accepted/rebutted summary from prior rounds).
+another agent as the critic: it can write.
+It has no shell (file reads and web search only): write the material it must check into
+`/tmp/team/<slug>/` (`git ls-files`, diffs) and name those files in each round's prompt.
+- Keep every round's prompt self-contained (include the proposal, current draft, and the
+  accepted/rebutted summary from prior rounds).
 - Keep the full transcript per round in `/tmp/team/<slug>/debate-log.md` (`<slug>`: a short
   kebab-case name for the topic).
 
@@ -78,7 +77,7 @@ For each objection/alternative, **check the code/docs directly** and judge:
 - Needs checking → actually check (grep, run tests) before judging
 Answer the critic's questions. If you don't know, say so.
 
-### 3. Round N (`invoke_agent(agent_name="team-reviewer", ...)`)
+### 3. Round N (`invoke_subagent`, subagent `team-reviewer`)
 Include the proposal, revised draft, and the delta from the previous round:
 ```
 Accepted: <item> → draft changed like this: <change>
@@ -121,6 +120,6 @@ Show `/tmp/team/<slug>/debate-log.md` if the user asks "show me the debate".
   without evidence either.
 - Only the coordinator edits and runs things. Never tell the critic to "fix it".
 - No verification that writes to production databases or external services (reads only).
-- Keep round prompts self-contained (since `invoke_agent` starts a fresh context per call).
+- Keep round prompts self-contained.
 - If the critic fails or returns no `## Verdict:`, invoke `team-reviewer` once more requiring the
   verdict in the required format. If that fails too, continue without it and say so in the report.
