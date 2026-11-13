@@ -66,16 +66,16 @@ section you are in, before your next step.
   built, open business questions, how other products do it — is drafted by Antigravity CLI (agy,
   template P); every technical choice stays Claude's. Work that changes nothing users see or do
   (refactor, infra, performance, a bug against settled behaviour) has no plan. After the preflight,
-  write `git ls-files` to `/tmp/team/<slug>/files.txt` and the prompt to `/tmp/team/<slug>/plan-req.md`
-  and start it in the worktree, in the background (Bash `run_in_background`, `timeout` 900000: a large
+  write the repo's files with absolute paths (`git ls-files | sed "s|^|$PWD/|"`) to
+  `/tmp/team/<slug>/files.txt` and the prompt to `/tmp/team/<slug>/plan-req.md`, and start it in the worktree, in the background (Bash `run_in_background`, `timeout` 900000: a large
   repo's plan took 7–9 minutes):
   ```bash
   env -u ORCA_PANE_KEY agy -p "$(cat /tmp/team/<slug>/plan-req.md)" --agent team-planner --dangerously-skip-permissions --disable-slash-commands < /dev/null > /tmp/team/<slug>/plan.md 2> /tmp/team/<slug>/plan.err
   ```
-  `team-planner` (installed with this skill) has only file reads and web search, so skipping
-  permissions approves nothing else, and a missing agent is an error, not a fallback. It can't list
-  or grep: hence `files.txt`. Without `env -u` agy's Orca hooks report as the driver's pane; `<
-  /dev/null` makes a login prompt fail instead of wait. No `agy` on PATH, a non-zero exit or timeout
+  `team-planner` (installed with this skill) has no tool that writes files or runs commands (file
+  reads, web search), so skipping permissions approves nothing else, and a missing agent is an
+  error, not a fallback. It can't list or grep: hence `files.txt`. Without `env -u` agy's Orca hooks
+  report as the driver's pane; `< /dev/null` makes a login prompt fail instead of wait. No `agy` on PATH, a non-zero exit or timeout
   (reason in `plan.err`), a plan without the sections asked for, or "plan it yourself" → Claude
   writes those sections, and the gate says why.
   The plan is a draft, not evidence: a claim the code or the foundation contradicts is corrected; a
