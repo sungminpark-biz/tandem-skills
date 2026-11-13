@@ -82,7 +82,8 @@ ponytail (필수 — agy는 `install.sh`가 함께 설치하며, Claude Code에�
 확인: 새 Claude Code 또는 agy / Orca IDE 세션을 열고 `/team` 또는 `/debate`를 입력. `--claude`는 Claude의
 `/team`이 제품 기획에 쓰는 읽기 전용 agy 에이전트 `team-planner`도 설치합니다(`agy agents`로 확인). `--agy`는
 agy판 스킬을 `~/.gemini/config/`에 설치하고, 리뷰어는 셸 없이 파일 읽기와 웹 검색만 가집니다. 지휘자가 diff와
-파일 목록을 파일로 만들어 리뷰어에게 넘깁니다.
+파일 목록을 파일로 만들어 리뷰어에게 넘깁니다. 예전 Gemini CLI판을 쓰던 경우: `install.sh`는 이제
+`~/.gemini/skills`, `~/.gemini/agents`, `~/.gemini/policies`를 건드리지 않으니 쓰지 않는 것은 지우세요.
 
 ## 사용법
 

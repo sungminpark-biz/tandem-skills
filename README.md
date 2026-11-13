@@ -88,7 +88,8 @@ Check: open a new Claude Code or agy / Orca IDE session and type `/team` or `/de
 also installs `team-planner`, the read-only agy agent Claude's `/team` starts for the product plan
 (`agy agents` lists it). `--agy` installs the agy copy of the skills into `~/.gemini/config/`, with a
 reviewer that has no shell (file reads and web search only): the coordinator writes the diff and file
-list for it.
+list for it. Coming from the old Gemini CLI copy: `install.sh` no longer touches `~/.gemini/skills`,
+`~/.gemini/agents` or `~/.gemini/policies`; delete what you don't use.
 
 ## Usage
 

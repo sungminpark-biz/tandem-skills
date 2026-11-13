@@ -79,9 +79,10 @@ replies into English.
   auth/permissions, every foundation review, and — except before launch (the Before launch rule) —
   migrations that change or drop existing data and customer data; a project's foundation may name
   more. The reviewer has only `read_file` and `search_web` (no shell, no edit tools): before every
-  review, write `git ls-files` and, for a code review, the worktree's `git status --short` and its
-  diff against the design's base into `/tmp/team/<slug>/`, and name those files in the prompt (it
-  reads new files by path). Every review prompt is self-contained (paths, measured facts, the template) and ends with:
+  review, write `git ls-files`, `grep -rn` of the names the design or diff changes and, for a code
+  review, the worktree's `git status --short` and its diff against the design's base into
+  `/tmp/team/<slug>/` (again after every fix, before Round 2), and name those files in the prompt
+  (it reads new files by path). Every review prompt is self-contained (paths, measured facts, the template) and ends with:
   "Review only: no edits, no DB/MCP writes, no deploys, no tests (the coordinator runs them). Stop
   after 30 tool calls (60 for a milestone design review, the milestone review or a foundation
   review) and list what you didn't check." Wait for every reviewer you started, then check each
@@ -161,7 +162,8 @@ replies into English.
 5. **Build**: the worker with the spec (template S). The coordinator doesn't edit source meanwhile. A
    worker question that changes the design → revise the doc before answering (foundation-level →
    `foundation.md` "Change").
-6. **Code review**, together in a single parallel turn: `invoke_subagent` with subagent `team-reviewer`
+6. **Code review**: write the review files first (Rules: Independent review), then together in a
+   single parallel turn: `invoke_subagent` with subagent `team-reviewer`
    and template C (worktree path, changed files, design doc, what to check hard — point to the
    design's sections instead of restating their rules: a restated rule becomes the reviewer's answer
    key; the reviewer has no shell and runs no tests); in the same turn, read `ponytail-review`'s
