@@ -1,6 +1,6 @@
 # tandem-skills
 
-**기획은 Gemini, 설계와 리뷰는 Claude, 코드는 워커(Claude Sonnet 또는 지정한 다른 에이전트).** Claude Code를 위한 에이전트 팀 스킬.
+**기획은 agy, 설계와 리뷰는 Claude, 코드는 워커(Claude Sonnet 또는 지정한 다른 에이전트).** Claude Code를 위한 에이전트 팀 스킬.
 
 [English README](README.md)
 
@@ -8,14 +8,14 @@
 `/team <작업>`이라고 치면:
 
 ```
-Gemini CLI가 제품 기획 초안 작성 — 흐름, 정책, 예외 상황, 열린 사업 질문
+Antigravity CLI(agy)가 제품 기획 초안 작성 — 흐름, 정책, 예외 상황, 열린 사업 질문
   (헤드리스·읽기 전용, 사용자에게 보이는 변경일 때만). 사업 질문은 사람이 답함
   → Claude가 설계 초안 작성
   → 읽기 전용 Claude 리뷰어가 설계를 깨뜨리려 시도 (저장소를 직접 읽고 파일:라인 인용)
      돈·인증(출시 뒤에는 데이터를 바꾸는 마이그레이션·고객 데이터도)이면 위험 전담 리뷰어가 함께 검토
   → Claude가 항목별로 근거를 들어 반박/수용하고 문서 수정      (최대 2라운드)
   → ★ 사람이 설계 승인 ★
-  → 워커가 구현: Claude Sonnet, 또는 지정한 다른 Orca 에이전트(예: Gemini CLI)
+  → 워커가 구현: Claude Sonnet, 또는 지정한 다른 Orca 에이전트(예: agy)
      (자기 터미널 탭에서 도는 감독받는 Orca 워커)
   → 리뷰어가 설계 대비 diff 검토 + Claude가 테스트 재실행 + ponytail-review로 과설계 점검
                                                                   (최대 2라운드)
@@ -26,7 +26,7 @@ Gemini CLI가 제품 기획 초안 작성 — 흐름, 정책, 예외 상황, 열
 결정, 마일스톤 지도를 정하고 — 그다음 마일스톤 단위로 만듭니다. 마일스톤마다 설계·검토·승인을 한 번씩
 하고, 그 안의 슬라이스를 연달아 만듭니다.
 
-MCP도, 데몬도, 스크립트도 없습니다. `SKILL.md` 2개, 리뷰어 서브에이전트 하나, Gemini 정책 파일 하나가 전부입니다. 구현자는
+MCP도, 데몬도, 스크립트도 없습니다. `SKILL.md` 2개, 리뷰어 서브에이전트 하나, agy용 읽기 전용 기획 에이전트 하나가 전부입니다. 구현자는
 [Orca](https://github.com/stablyai/orca) 워커로 띄웁니다. Orca가 없으면 승인된 설계를
 `claude --model sonnet`에서 구현한 뒤 리뷰를 받으러 돌아오면 됩니다.
 
@@ -55,35 +55,34 @@ MCP도, 데몬도, 스크립트도 없습니다. `SKILL.md` 2개, 리뷰어 서�
   않음 (설치 참고)
 - [Orca](https://github.com/stablyai/orca) — 터미널 탭이 보이는 감독받는 워커에 필요. 없으면
   `claude --model sonnet`에서 직접 구현하고 리뷰를 받으러 돌아오면 됨. 설계·리뷰·기초 설계 모드는 없어도 동작
-- 권장: [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`gemini` PATH, 로그인) — 제품 기획용.
+- 권장: [Antigravity CLI](https://antigravity.google) (`agy` PATH, 확인 창 없이 실행되도록 로그인) — 제품 기획용.
   없거나 실패하면 Claude가 기획을 쓰고 게이트에 그 사실을 적음. 기획 단계는 저장소에서 읽은 내용을 Google로 보냄
 - 권장: [context7](https://github.com/upstash/context7) 플러그인 — 설계의 최신성 확인용
   (`/plugin install context7@claude-plugins-official` 후 `/mcp`로 한 번 로그인). `/team`은 설계 전에
   context7과 프로젝트의 DB MCP가 연결돼 있는지 확인하고, 인증이 풀려 있으면 인증을 요청함
 
 Claude Code 2.1.273–2.1.286 (Claude Opus 5 / 5.5 드라이버, Sonnet 5.5 워커), Orca 1.4.204–1.4.220,
-Gemini CLI 0.65.0–0.66.0, macOS에서 테스트.
+Antigravity CLI 1.5, macOS에서 테스트.
 
 ## 설치
 
 ```bash
 git clone https://github.com/sungminpark-biz/tandem-skills.git
-cd tandem-skills && ./install.sh          # ~/.claude/ 와 ~/.gemini/ 양쪽에 복사 설치
+cd tandem-skills && ./install.sh          # ~/.claude/ 와 agy의 ~/.gemini/config/ 양쪽에 복사 설치
 # 또는: ./install.sh --link               # 심볼릭 링크 — git pull 하면 바로 반영
-# 또는: ./install.sh --claude / --gemini  # 한쪽 CLI에만 설치
+# 또는: ./install.sh --claude / --agy     # 한쪽 CLI에만 설치
 ```
 
-ponytail (필수 — Gemini CLI는 `install.sh`가 함께 설치하며, Claude Code에서는 아래 프롬프트 두 번에 나눠서 설치):
+ponytail (필수 — agy는 `install.sh`가 함께 설치하며, Claude Code에서는 아래 프롬프트 두 번에 나눠서 설치):
 ```
 /plugin marketplace add DietrichGebert/ponytail
 /plugin install ponytail@ponytail
 ```
 
-확인: 새 Claude Code 또는 Gemini CLI / Orca IDE 세션을 열고 `/team` 또는 `/debate`를 입력.
-Gemini CLI에서는 `node ~/.gemini/team-reviewer-probe.mjs`로 읽기 전용 리뷰어 정책을 검증할 수 있습니다.
-`--gemini`는 Gemini 판을 [Antigravity CLI](https://antigravity.google)(agy)에도 설치합니다(`~/.gemini/config/`).
-스킬은 같고, 리뷰어는 정책 파일 대신 셸 없이 파일 읽기와 웹 검색만 가진 agy용 정의를 씁니다. agy에서는 지휘자가
-diff와 파일 목록을 파일로 만들어 리뷰어에게 넘깁니다.
+확인: 새 Claude Code 또는 agy / Orca IDE 세션을 열고 `/team` 또는 `/debate`를 입력. `--claude`는 Claude의
+`/team`이 제품 기획에 쓰는 읽기 전용 agy 에이전트 `team-planner`도 설치합니다(`agy agents`로 확인). `--agy`는
+agy판 스킬을 `~/.gemini/config/`에 설치하고, 리뷰어는 셸 없이 파일 읽기와 웹 검색만 가집니다. 지휘자가 diff와
+파일 목록을 파일로 만들어 리뷰어에게 넘깁니다.
 
 ## 사용법
 
@@ -96,7 +95,7 @@ Orca 워크트리 안의 Claude Code에서:
 ```
 
 Claude가:
-1. Gemini CLI를 백그라운드로 띄워(`gemini -p`, 파일 읽기와 웹 검색만 허용하는 `plan-policy.toml` 아래에서)
+1. agy를 백그라운드로 띄워(`agy -p --agent team-planner`, 파일 읽기와 웹 검색만 가진 에이전트로)
    제품 기획 초안을 받는 동안 코드 조사(넓은 코드베이스면 영역별 병렬 Explore 에이전트, Sonnet으로).
    기획은 흐름, 정책과 예외 상황, 다른 제품들의 방식, 안 만드는 것, 열린 사업 질문. 범위를 바꾸는 사업 질문은
    사용자에게 묻고, `docs/design/<날짜>-<slug>.md` 작성(확정된 기획, 범위, 시그니처, 순서, 완료 기준, 일부러
@@ -106,7 +105,7 @@ Claude가:
    함께 — 항목별로 코드를 확인해 문서 수정, 반박, 또는 실제 피해가 없는 것은 이유를 적고 넘김
 3. **멈추고 요약을 보여줌 — "승인"이라고 할 때까지 아무것도 구현하지 않음**
 4. Orca에 워커를 띄우고(`worker-start --spec … --agent claude --model sonnet`, 다른 에이전트를 지정했으면
-   `--agent antigravity`(agy), `--agent gemini` 등 — 그 에이전트 자체 설정의 모델로 동작) 질문에 답함.
+   `--agent antigravity`(agy), `--agent codex` 등 — 그 에이전트 자체 설정의 모델로 동작) 질문에 답함.
    워커는 설계 범위 안에서 ponytail로 코드를 씀
 5. diff 리뷰(Spec 체크: 누락, 요청 안 한 것, 잘못 구현 — 각각 설계 문서 인용, 그리고
    실제 경우에 깨지는 설계 줄 자체. 테스트 체크: 새 테스트마다 변경을 되돌리면 실패하는지, 코드가
@@ -119,7 +118,7 @@ Claude가:
 "너가 직접 구현해"라고 하면 워커 대신 Claude가 직접 구현하고, 리뷰
 단계는 똑같습니다. `sonnet`은 별칭이어서 워커가 항상 최신 Sonnet을 따라갑니다.
 
-Orca가 띄울 수 있는 다른 에이전트로 구현하려면 요청이나 승인 단계에서 말하면 됩니다("구현은 gemini").
+Orca가 띄울 수 있는 다른 에이전트로 구현하려면 요청이나 승인 단계에서 말하면 됩니다("구현은 agy").
 그 기능이나 마일스톤 실행 동안 유지되고, 그 코드는 Opus가 리뷰합니다. 그런 에이전트는 저장소의 CLAUDE.md를
 스스로 읽지 않으므로 작업 지시에 읽으라는 줄이 들어갑니다. 모델 응답 한 단계에서 대기 두 번
 연속 멈춰 있는 워커(모델 시간 제한이 없는 에이전트가 있음)는 멈추고 같은 워크트리에서 한 번 다시 띄웁니다.
@@ -141,7 +140,7 @@ Claude Code에서:
 ```
 
 Claude가:
-1. Gemini CLI가 정본(charter) 초안 작성 — 누가, 핵심 흐름, 성공/실패 신호, 설계 상한, 하지 않는 것,
+1. agy가 정본(charter) 초안 작성 — 누가, 핵심 흐름, 성공/실패 신호, 설계 상한, 하지 않는 것,
    사용자에게 보이는 기능 단위의 마일스톤 후보 — Claude가 코드와 대조해 바로잡고
    `docs/design/foundation/charter.md`로 씀. 모르는 건
    전부 질문으로 바꾸고, 사업 판단은 사용자가 정함
@@ -154,7 +153,7 @@ Claude가:
 5. **승인을 받으려고 멈춤**, 그다음 M1을 제안
 
 그다음 마일스톤 단위로 만듭니다: `/team M3` (마일스톤이나 슬라이스 이름). 사용자에게 보이는
-마일스톤이면 Gemini가 먼저 기획합니다. Claude가 마일스톤 전체의 설계 문서 하나(기획과 공유
+마일스톤이면 agy가 먼저 기획합니다. Claude가 마일스톤 전체의 설계 문서 하나(기획과 공유
 인터페이스 먼저, 그다음 슬라이스별)를 쓰고, 검토를 한 번 받고, 사용자가 한 번 승인합니다. 그 뒤
 슬라이스를 연달아 만듭니다. 서로 의존하는 슬라이스는 워커 하나가 차례로, 독립 슬라이스는 각자 하위 워크트리의
 워커가 동시에 만들고, 슬라이스마다 코드 리뷰와 로컬 커밋을 거칩니다. 마지막 슬라이스가 들어가면 전체 테스트를
@@ -190,7 +189,7 @@ Claude가:
 | 대상 | 방식 | 효과 |
 |---|---|---|
 | 리뷰어와 debate 반론자 | `team-reviewer` 서브에이전트: `Write`, `Edit`, `NotebookEdit` 금지 | 편집 도구가 없음. 저장소를 읽고 명령을 실행 (Bash는 sandbox가 아님 — 한계 참고) |
-| 기획자 | Gemini CLI 헤드리스 + `plan-policy.toml` (사용자 정책보다 앞서도록 admin 정책으로 로드) | 파일 읽기와 웹 검색만: 편집, 셸, URL 직접 조회, MCP 도구 없음. `--approval-mode plan`은 쓰지 않음 — 헤드리스에서는 스스로 YOLO로 바뀜 |
+| 기획자 | agy 헤드리스 + `team-planner` 에이전트(도구는 파일 읽기와 웹 검색뿐; 없는 에이전트 이름은 기본 에이전트로 넘어가지 않고 오류) | 편집, 셸, MCP 도구 없음. 저장소 파일 목록은 파일로 받음 |
 | 워커 | Orca 워커 지시서: 설계의 변경 범위, "커밋 금지", 질문은 Orca의 `ask`로 | 변경이 승인된 범위 안에, 커밋되지 않은 채로 리뷰를 기다림 |
 | 승인 게이트 | 스킬 규칙 | 설계(그리고 기초 설계) 확정 후 드라이버는 턴을 끝내고 기다려야 함 |
 
@@ -216,15 +215,14 @@ Claude가:
 
 ## 한계
 
-- 제품 기획은 Gemini CLI가 맡습니다. 기획은 Claude가 코드와 대조하는 초안이고, 기술 선택은 모두 Claude가
+- 제품 기획은 agy가 맡습니다. 기획은 Claude가 코드와 대조하는 초안이고, 기술 선택은 모두 Claude가
   합니다.
 - 리뷰어와 반론자는 Claude 모델이고, 워커는 다른 에이전트를 지정하지 않으면 Claude Sonnet입니다. 코드
   리뷰는 항상 모델을 건너갑니다(Opus가 Sonnet이나 다른 에이전트의 코드를, Sonnet이 Claude가 직접 짠
-  코드를 검토). Gemini CLI 판은 기본으로 지휘자·워커·리뷰어가 Gemini 모델 하나라서, 리뷰의 독립성은 새
-  문맥의 리뷰어와 코드를 워커가 쓴다는 점에서만 나옵니다.
-- 긴 실행은 컨텍스트가 압축됩니다. Claude Code는 스킬의 앞 약 5,000토큰만 다시 붙이고, Gemini CLI의 요약에는
-  스킬이 남지 않습니다. 스킬이 압축 뒤에 자신을 다시 읽으라고 지시하지만(Gemini는 매 턴 실리는 description으로),
-  게이트처럼 모델이 지켜야 하는 규칙입니다.
+  코드를 검토). agy판은 기본으로 지휘자·워커·리뷰어가 모델 하나라서, 리뷰의 독립성은 새 문맥의 리뷰어와
+  코드를 워커가 쓴다는 점에서만 나옵니다.
+- 긴 실행은 컨텍스트가 압축됩니다. Claude Code는 스킬의 앞 약 5,000토큰만 다시 붙입니다. 스킬이 압축 뒤에
+  자신을 다시 읽으라고 지시하지만(agy는 description으로), 게이트처럼 모델이 지켜야 하는 규칙입니다.
 - Claude가 아닌 구현 에이전트는 아직 마일스톤 전체를 돌려 보지 않았습니다. 사람 없이 돌아가야 하므로, 확인
   창에서 멈추거나 실행 중에 로그인이 만료되는 에이전트는 사람이 처리해야 합니다.
 - 리뷰어의 Bash는 sandbox가 아닙니다. "리뷰만, DB·외부 서비스에 쓰지 말 것"은 프롬프트 규칙입니다. 운영
@@ -247,18 +245,16 @@ Claude가:
 skills/
   team/SKILL.md          경로, 규칙, 기능 흐름, Orca 워커 명령, 템플릿 (Claude Code)
   team/foundation.md     기초 설계 / 마일스톤 실행 / 변경   (그 경로를 탈 때만 읽음)
-  team/plan-policy.toml  제품 기획용 Gemini CLI 정책: 파일 읽기와 웹 검색만
   debate/SKILL.md        논의 루프 (Claude Code)
 agents/
   team-reviewer.md       Claude Code용 읽기 전용·재개 가능한 리뷰어/반론자 서브에이전트
-gemini/
-  skills/team/           Gemini CLI·agy (및 Orca IDE)용 /team 스킬과 foundation.md
-  skills/debate/         Gemini CLI용 /debate 스킬
-  skills/ponytail/       Gemini CLI용 ponytail 스킬
-  skills/ponytail-review/ Gemini CLI용 ponytail-review 스킬
-  agents/                Gemini CLI용 team-reviewer 서브에이전트, agy용 team-reviewer.agy.md (셸 없음)
-  policies/              team-reviewer 읽기 전용 PolicyEngine 규칙 (team-reviewer.toml)
-  team-reviewer-probe.mjs ~/.gemini/policies 검증 스크립트
+agy/
+  skills/team/           Antigravity CLI (및 Orca IDE)용 /team 스킬과 foundation.md
+  skills/debate/         agy용 /debate 스킬
+  skills/ponytail/       agy용 ponytail 스킬
+  skills/ponytail-review/ agy용 ponytail-review 스킬
+  agents/team-reviewer.md agy용 리뷰어/반론자 서브에이전트: 파일 읽기와 웹 검색만
+  agents/team-planner.md  Claude의 /team이 agy로 띄우는 제품 기획자: 파일 읽기와 웹 검색만
 install.sh
 CLAUDE.md                이 저장소 편집 규칙: 이식, 압축 뒤 남는 부분
 ```

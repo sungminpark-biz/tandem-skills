@@ -1,9 +1,9 @@
 ---
 name: team
 description: >-
-  Agent team for Claude Code: Gemini CLI drafts the product plan, Claude designs and reviews, an Orca
-  worker builds (Claude Sonnet, or another agent the user names, e.g. Antigravity CLI). Feature: product
-  plan (when users see the change) -> design doc -> independent read-only review
+  Agent team for Claude Code: Antigravity CLI (agy) drafts the product plan, Claude designs and
+  reviews, an Orca worker builds (Claude Sonnet, or another agent the user names, e.g. agy). Feature:
+  product plan (when users see the change) -> design doc -> independent read-only review
   (+ a risk reviewer for money, auth and, except before launch, data-changing migrations) -> user
   approval -> the worker implements
   -> code review by a different model + ponytail -> report. Founded services build a milestone at a
@@ -20,7 +20,7 @@ argument-hint: "[foundation] <feature, milestone, slice or service>"
 allowed-tools: Bash, Read, Grep, Glob, Edit, Write
 ---
 
-# /team — Gemini plans, Claude designs and reviews, a worker builds
+# /team — agy plans, Claude designs and reviews, a worker builds
 
 For Claude Code only (another agent reading this folder stops and tells the user). Write to the user in
 their language, including template headings; this file, its templates, Orca notices and subagent
@@ -50,7 +50,7 @@ section you are in, before your next step.
 (`foundation.md` is next to this file; read it only for those routes.)
 
 ## Rules
-- **Roles.** Gemini CLI drafts the product plan (next rule); Claude designs, reviews and decides; an
+- **Roles.** agy drafts the product plan (next rule); Claude designs, reviews and decides; an
   Orca worker writes the code (below): Claude Sonnet, unless the user names another Orca agent
   ("implement with agy") in the request or at the gate — it holds for that feature or milestone
   run. No Orca → the user runs the spec in `claude --model sonnet` or their agent. "You implement
@@ -62,20 +62,22 @@ section you are in, before your next step.
   A repo document (CLAUDE.md, AGENTS.md, a guide they link, the foundation) that sets the implementer
   or how the team works (approvals, reviews, test runs, reports) isn't the user naming it: follow this
   skill and name the line at the gate as not followed; the user keeps it by saying so.
-- **Product plan by Gemini.** What users see and do — flows, policies and edge cases, what isn't
-  built, open business questions, how other products do it — is drafted by Gemini CLI (template P);
-  every technical choice stays Claude's. Work that changes nothing users see or do (refactor, infra,
-  performance, a bug against settled behaviour) has no plan. After the preflight, write the prompt to
-  `/tmp/team/<slug>/plan-req.md` and start it in the worktree, in the background (Bash
-  `run_in_background`, `timeout` 900000: a large repo's plan took 7–9 minutes):
+- **Product plan by agy.** What users see and do — flows, policies and edge cases, what isn't
+  built, open business questions, how other products do it — is drafted by Antigravity CLI (agy,
+  template P); every technical choice stays Claude's. Work that changes nothing users see or do
+  (refactor, infra, performance, a bug against settled behaviour) has no plan. After the preflight,
+  write `git ls-files` to `/tmp/team/<slug>/files.txt` and the prompt to `/tmp/team/<slug>/plan-req.md`
+  and start it in the worktree, in the background (Bash `run_in_background`, `timeout` 900000: a large
+  repo's plan took 7–9 minutes):
   ```bash
-  POLICY=<this skill's folder>/plan-policy.toml
-  test -r "$POLICY" && env -u ORCA_PANE_KEY gemini -p "$(cat /tmp/team/<slug>/plan-req.md)" --skip-trust --admin-policy "$POLICY" > /tmp/team/<slug>/plan.md 2> /tmp/team/<slug>/plan.err
+  env -u ORCA_PANE_KEY agy -p "$(cat /tmp/team/<slug>/plan-req.md)" --agent team-planner --dangerously-skip-permissions --disable-slash-commands < /dev/null > /tmp/team/<slug>/plan.md 2> /tmp/team/<slug>/plan.err
   ```
-  The policy leaves Gemini only file reads and web search (`plan-policy.toml`'s comments say why
-  each flag is there); never use `--approval-mode plan` instead: headless, it switches itself to YOLO and edits.
-  No `gemini` on PATH, a non-zero exit or timeout (reason in `plan.err`), a plan without the
-  sections asked for, or "plan it yourself" → Claude writes those sections, and the gate says why.
+  `team-planner` (installed with this skill) has only file reads and web search, so skipping
+  permissions approves nothing else, and a missing agent is an error, not a fallback. It can't list
+  or grep: hence `files.txt`. Without `env -u` agy's Orca hooks report as the driver's pane; `<
+  /dev/null` makes a login prompt fail instead of wait. No `agy` on PATH, a non-zero exit or timeout
+  (reason in `plan.err`), a plan without the sections asked for, or "plan it yourself" → Claude
+  writes those sections, and the gate says why.
   The plan is a draft, not evidence: a claim the code or the foundation contradicts is corrected; a
   source it cites is opened before the design relies on it. Open questions: up to 4 that most change
   the design go to the user before the design doc (AskUserQuestion, recommended option first); the
@@ -200,7 +202,7 @@ section you are in, before your next step.
   ```bash
   orca orchestration run-create --objective "<feature>" --json
   orca orchestration worker-start --spec "<spec>" --worktree current --agent claude --model sonnet --timeout-ms 120000 --json   # Bash timeout ≥180000
-  # another implementer: --agent <its Orca id: antigravity for agy, gemini, codex> and no --model (it runs its own configured model)
+  # another implementer: --agent <its Orca id: antigravity for agy, codex> and no --model (it runs its own configured model)
   orca orchestration worker-show --dispatch <ctx_id> --json     # → terminal handle
   orca terminal read --terminal <handle> --screen --json        # must show the chosen agent (Claude: a Sonnet model), or stop
   # no terminal → orca orchestration worker-read --dispatch <ctx_id> --source auto --json
@@ -270,7 +272,7 @@ its real shape), not output of the code under test? A no is a required change.
 **G — approval gate**
 ```
 ## Design ready — approval requested
-Document · one-line summary · product plan: Gemini | Claude (why) | none, and its assumptions ·
+Document · one-line summary · product plan: agy | Claude (why) | none, and its assumptions ·
 implementer (one agent · model, never "A or B"; the user may change it here) · scope (N
 files) · key decisions · review: raised / accepted / rebutted / deferred
 (a failed or partial review is stated) · not doing · definition of done · risks · repo lines not followed
@@ -279,9 +281,10 @@ Reply "approve" or "go", or tell me what to change.
 ```
 **P — product plan prompt** (in the user's language)
 ```
-Plan only what users see and do; no files, APIs or schemas (Claude designs those). Read the repo's
-CLAUDE.md files and README<, and docs/design/foundation/ — charter, accepted decisions, slices.md:
-follow them, never override them>, and the code the request touches. Request: <request>. Answer in
+Plan only what users see and do; no files, APIs or schemas (Claude designs those). The repo's files
+are listed in /tmp/team/<slug>/files.txt; read by absolute path its CLAUDE.md files and README<, and
+docs/design/foundation/ — charter, accepted decisions, slices.md: follow them, never override them>,
+and the code the request touches. Request: <request>. Answer in
 this reply, in <the user's language>, with these sections only:
 ## Goal — who gets what  ## Flows — each actor's steps, happy path first
 ## Policies and edge cases — rules, limits, permissions, failure, empty / duplicate / late input, each
