@@ -81,7 +81,13 @@ if [[ "$DO_AGY" -eq 1 ]]; then
   for skill in team debate ponytail ponytail-review; do
     install_item "$HERE/agy/skills/$skill" "$AGY_CONFIG/skills/$skill" "$AGY_CONFIG/skills-backup" "agy skill $skill"
   done
-  install_item "$HERE/agy/agents/team-reviewer.md" "$AGY_CONFIG/agents/team-reviewer.md" "$AGY_CONFIG/agents-backup" "agy agent team-reviewer"
+  chmod +x "$HERE/agy/skills/team/run-agent.sh"
+  if [[ "$MODE" != "--link" && -f "$AGY_CONFIG/skills/team/run-agent.sh" ]]; then
+    chmod +x "$AGY_CONFIG/skills/team/run-agent.sh"
+  fi
+  for agent in team-reviewer.md team-survey.md; do
+    install_item "$HERE/agy/agents/$agent" "$AGY_CONFIG/agents/$agent" "$AGY_CONFIG/agents-backup" "agy agent ${agent%.md}"
+  done
 fi
 
 echo
@@ -94,4 +100,5 @@ if [[ "$DO_CLAUDE" -eq 1 ]]; then
 fi
 if [[ "$DO_AGY" -eq 1 ]]; then
   echo "  agy:     use /team or /debate in a new Antigravity CLI session"
+  echo "  vertex:  ~/.gemini/config/skills/team/run-agent.sh --preflight"
 fi

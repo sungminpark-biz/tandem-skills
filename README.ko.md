@@ -81,9 +81,11 @@ ponytail (필수 — agy는 `install.sh`가 함께 설치하며, Claude Code에�
 
 확인: 새 Claude Code 또는 agy / Orca IDE 세션을 열고 `/team` 또는 `/debate`를 입력. `--claude`는 Claude의
 `/team`이 제품 기획에 쓰는 읽기 전용 agy 에이전트 `team-planner`도 설치합니다(`agy agents`로 확인). `--agy`는
-agy판 스킬을 `~/.gemini/config/`에 설치하고, 리뷰어는 셸 없이 파일 읽기와 웹 검색만 가집니다. 지휘자가 diff와
-파일 목록을 파일로 만들어 리뷰어에게 넘깁니다. 예전 Gemini CLI판을 쓰던 경우: `install.sh`는 이제
-`~/.gemini/skills`, `~/.gemini/agents`, `~/.gemini/policies`를 건드리지 않으니 쓰지 않는 것은 지우세요.
+agy판 스킬을 `~/.gemini/config/`에 설치하며(100% Vertex AI 크레딧 기반 Gemini 4 Carbon + Hydrogen —
+`~/.gemini/config/skills/team/run-agent.sh --preflight`로 검증), 셸이 없는 읽기 전용 `team-reviewer`와
+`team-survey` 에이전트를 위해 지휘자가 diff, `grep -rn` 참조, 절대 경로 파일 목록을 파일로 만들어 넘깁니다.
+예전 Gemini CLI판을 쓰던 경우: `install.sh`는 이제 `~/.gemini/skills`, `~/.gemini/agents`,
+`~/.gemini/policies`를 건드리지 않으니 쓰지 않는 것은 지우세요.
 
 ## 사용법
 
@@ -178,6 +180,14 @@ Claude가:
 /debate 세션 저장소를 Redis에서 Postgres로 옮겨야 할까?
 ```
 
+### Antigravity CLI (`agy`) — Gemini 4 Carbon + Hydrogen (`agy/`)
+
+`./install.sh --agy`(또는 `./install.sh`)는 Orca IDE 안의 Antigravity CLI를 위해 `agy/` 에디션을 `~/.gemini/config/`에 설치합니다:
+- **100% Vertex AI 과금 안전장치:** `run-agent.sh --preflight`와 모든 서브프로세스 호출에서 `GOOGLE_GENAI_USE_VERTEXAI=true` 및 `GOOGLE_CLOUD_PROJECT` 설정, `GEMINI_API_KEY` / `GOOGLE_API_KEY` 미설정, `~/.gemini/antigravity-cli/settings.json`의 Vertex `gemini-4-*` 모델 구성을 강제(Hard Block)합니다.
+- **Carbon + Hydrogen 역할 분담:** `gemini-4-carbon-medium`이 지휘·기획·설계/위험/마일스톤 리뷰·고난도(Hard/Risk) 구현 단위를 맡고, `gemini-4-hydrogen-medium` / `high`가 병렬 `team-survey` 코드 탐색과 일반 기능/슬라이스 코드 리뷰를(Carbon과 함께), `gemini-4-hydrogen-xhigh`가 기본 Orca 워커 구현을 맡습니다.
+- **병렬 Orca 하위 워크트리 실행:** 기능 설계가 겹치지 않는 파일 범위를 병렬 구현 단위(`U1..Uk`, 동시에 최대 4개 하위 워크트리, `git add -N` + `git diff --binary` + `git apply --check`로 상위 워크트리에 미커밋 통합)로 나누고, 마일스톤 실행은 얇은 공통 계약 슬라이스를 먼저 커밋한 뒤 독립 슬라이스를 동시에 최대 5개까지 병렬로 만듭니다.
+- **정확한 모델 지정 읽기 전용 서브프로세스(`run-agent.sh`):** Orca 상위 훅을 제거한 헤드리스 `agy --agent <team-reviewer|team-survey> --model <gemini-4-*>`를 호출해 `invoke_subagent` 내부 모델 티어 매핑을 우회하면서 읽기 전용 도구 목록을 강제합니다.
+
 ## 설계 품질 기준
 
 설계 단계는 네 가지 규칙을 지키고, 적대 검토가 각각을 확인합니다: **재작성 전에 재사용**(기존 자산 인벤토리
@@ -220,8 +230,9 @@ Claude가:
   합니다.
 - 리뷰어와 반론자는 Claude 모델이고, 워커는 다른 에이전트를 지정하지 않으면 Claude Sonnet입니다. 코드
   리뷰는 항상 모델을 건너갑니다(Opus가 Sonnet이나 다른 에이전트의 코드를, Sonnet이 Claude가 직접 짠
-  코드를 검토). agy판은 기본으로 지휘자·워커·리뷰어가 모델 하나라서, 리뷰의 독립성은 새 문맥의 리뷰어와
-  코드를 워커가 쓴다는 점에서만 나옵니다.
+  코드를 검토). `agy/`판은 Vertex AI 위에서 `run-agent.sh`로 Gemini 4 Carbon(지휘자, 설계/위험/마일스톤
+  리뷰, Hard/Risk 단위)과 Gemini 4 Hydrogen(기본 워커, 병렬 `team-survey` 탐색기, 일반 코드 리뷰)을
+  나눠 씁니다.
 - 긴 실행은 컨텍스트가 압축됩니다. Claude Code는 스킬의 앞 약 5,000토큰만 다시 붙입니다. 스킬이 압축 뒤에
   자신을 다시 읽으라고 지시하지만(agy는 description으로), 게이트처럼 모델이 지켜야 하는 규칙입니다.
 - Claude가 아닌 구현 에이전트는 아직 마일스톤 전체를 돌려 보지 않았습니다. 사람 없이 돌아가야 하므로, 확인
@@ -250,11 +261,12 @@ skills/
 agents/
   team-reviewer.md       Claude Code용 읽기 전용·재개 가능한 리뷰어/반론자 서브에이전트
 agy/
-  skills/team/           Antigravity CLI (및 Orca IDE)용 /team 스킬과 foundation.md
+  skills/team/           Antigravity CLI (및 Orca IDE)용 /team 스킬, foundation.md, run-agent.sh
   skills/debate/         agy용 /debate 스킬
   skills/ponytail/       agy용 ponytail 스킬
   skills/ponytail-review/ agy용 ponytail-review 스킬
-  agents/team-reviewer.md agy용 리뷰어/반론자 서브에이전트: 파일 읽기와 웹 검색만
+  agents/team-reviewer.md agy용 리뷰어/반론자 에이전트: 파일 읽기와 웹 검색만
+  agents/team-survey.md   agy의 /team 병렬 코드 탐색 에이전트: 파일 읽기만
   agents/team-planner.md  Claude의 /team이 agy로 띄우는 제품 기획자: 파일 읽기와 웹 검색만
 install.sh
 CLAUDE.md                이 저장소 편집 규칙: 이식, 압축 뒤 남는 부분

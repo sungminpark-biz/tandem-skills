@@ -86,10 +86,12 @@ ponytail (required; bundled automatically for agy, install via plugin in Claude 
 
 Check: open a new Claude Code or agy / Orca IDE session and type `/team` or `/debate`. `--claude`
 also installs `team-planner`, the read-only agy agent Claude's `/team` starts for the product plan
-(`agy agents` lists it). `--agy` installs the agy copy of the skills into `~/.gemini/config/`, with a
-reviewer that has no shell (file reads and web search only): the coordinator writes the diff and file
-list for it. Coming from the old Gemini CLI copy: `install.sh` no longer touches `~/.gemini/skills`,
-`~/.gemini/agents` or `~/.gemini/policies`; delete what you don't use.
+(`agy agents` lists it). `--agy` installs the agy copy of the skills into `~/.gemini/config/`
+(Gemini 4 Carbon + Hydrogen on 100% Vertex AI credits — verify with
+`~/.gemini/config/skills/team/run-agent.sh --preflight`), with read-only `team-reviewer` and
+`team-survey` agents that have no shell: the coordinator writes the diff, `grep -rn` references and
+absolute-path file list for them. Coming from the old Gemini CLI copy: `install.sh` no longer touches
+`~/.gemini/skills`, `~/.gemini/agents` or `~/.gemini/policies`; delete what you don't use.
 
 ## Usage
 
@@ -192,6 +194,14 @@ resumes.
 /debate Should we move session storage from Redis to Postgres?
 ```
 
+### Antigravity CLI (`agy`) — Gemini 4 Carbon + Hydrogen (`agy/`)
+
+`./install.sh --agy` (or `./install.sh`) installs the `agy/` edition into `~/.gemini/config/` for Antigravity CLI in Orca IDE:
+- **100% Vertex AI billing guardrails:** `run-agent.sh --preflight` and every subprocess call hard-block unless `GOOGLE_GENAI_USE_VERTEXAI=true` and `GOOGLE_CLOUD_PROJECT` are set, `GEMINI_API_KEY` / `GOOGLE_API_KEY` are unset, and `~/.gemini/antigravity-cli/settings.json` uses a Vertex `gemini-4-*` model.
+- **Carbon + Hydrogen role split:** `gemini-4-carbon-medium` coordinates, plans, runs design/risk/milestone reviews, and implements Hard/Risk units; `gemini-4-hydrogen-medium` / `high` runs parallel `team-survey` repo explorers and standard feature/slice code reviews alongside Carbon; `gemini-4-hydrogen-xhigh` runs default Orca workers.
+- **Parallel Orca child worktrees:** feature designs split disjoint file scopes into parallel implementation units (`U1..Uk`, up to 4 concurrent child worktrees integrated uncommitted into `current` via `git add -N` + `git diff --binary` + `git apply --check`), and milestone runs fan out up to 5 independent slices concurrently after a thin committed contract slice.
+- **Exact-model read-only subprocesses (`run-agent.sh`):** runs headless `agy --agent <team-reviewer|team-survey> --model <gemini-4-*>` with Orca parent hooks stripped, bypassing `invoke_subagent`'s internal model-tier mapping while enforcing read-only tool lists.
+
 ## Design quality bar
 
 The design step is held to four rules, and the adversarial review checks each of them:
@@ -237,8 +247,9 @@ Other details that came out of real runs:
   every technical choice stays Claude's.
 - Reviewer and critic are Claude models; the worker is Claude Sonnet unless you name another agent.
   The code review always crosses models (Opus reviews Sonnet's or another agent's code, Sonnet reviews
-  Claude's own). The agy copy runs coordinator, worker and reviewer on one model by default: its
-  reviews are independent only through a fresh reviewer context and the worker writing the code.
+  Claude's own). In the `agy/` copy, `run-agent.sh` splits Gemini 4 Carbon (coordinator,
+  design/risk/milestone reviews, Hard/Risk units) and Gemini 4 Hydrogen (default workers, parallel
+  `team-survey` explorers, standard code reviews) on Vertex AI.
 - Long runs get compacted. Claude Code re-attaches only about the first 5,000 tokens of a skill; the
   skill tells the driver to re-read it after a compaction (in agy through its description). Like the
   gates, that is model compliance.
@@ -268,11 +279,12 @@ skills/
 agents/
   team-reviewer.md       read-only, resumable reviewer / critic subagent for Claude Code
 agy/
-  skills/team/           /team skill and foundation.md adapted for Antigravity CLI (and Orca IDE)
+  skills/team/           /team skill, foundation.md, and run-agent.sh for Antigravity CLI (and Orca IDE)
   skills/debate/         /debate skill adapted for agy
   skills/ponytail/       ponytail skill bundled for agy
   skills/ponytail-review/ ponytail-review skill bundled for agy
-  agents/team-reviewer.md reviewer / critic subagent for agy: file reads and web search only
+  agents/team-reviewer.md reviewer / critic agent for agy: file reads and web search only
+  agents/team-survey.md   parallel repo explorer for agy's /team: file reads only
   agents/team-planner.md  product planner Claude's /team starts in agy: file reads and web search only
 install.sh
 CLAUDE.md                rules for editing this repo: ports, what survives a compaction
